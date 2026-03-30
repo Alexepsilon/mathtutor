@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1a1a2e">
+<title>Math Tutor — T192/T193</title>
+<link rel="manifest" href="manifest.json">
+<style>
+:root {
+  --bg: #1a1a2e; --bg2: #16213e; --card: #1e2a4a;
+  --border: #2a3a5a; --text: #e0e0e0; --text2: #a0a0a0;
+  --accent: #e94560; --success: #4caf50; --warning: #ff9800;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg); color: var(--text);
+  min-height: 100vh; padding: 16px; padding-bottom: 80px;
+}
+h1 { font-size: 1.5rem; margin-bottom: 8px; color: var(--accent); }
+h2 { font-size: 1.2rem; margin: 16px 0 8px; color: var(--accent); }
+.card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 16px; margin-bottom: 12px;
+}
+.btn {
+  display: inline-block; padding: 12px 24px; border: none; border-radius: 8px;
+  font-size: 1rem; cursor: pointer; font-weight: 600; color: #fff;
+  background: var(--accent); transition: opacity 0.2s; text-decoration: none;
+}
+.btn:hover { opacity: 0.85; }
+.btn-success { background: var(--success); }
+.btn-secondary { background: var(--bg2); border: 1px solid var(--border); }
+.btn-sm { padding: 8px 16px; font-size: 0.9rem; }
+input[type="text"] {
+  background: var(--bg2); color: var(--text); border: 1px solid var(--border);
+  padding: 12px 16px; border-radius: 8px; font-size: 1rem; width: 100%;
+}
+input:focus { outline: none; border-color: var(--accent); }
+.progress-bar {
+  background: var(--border); border-radius: 10px; height: 12px; overflow: hidden; margin: 8px 0;
+}
+.progress-fill { height: 100%; transition: width 0.3s; }
+.topic-list { list-style: none; }
+.topic-item {
+  background: var(--bg2); border-radius: 8px; padding: 12px;
+  margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;
+}
+.topic-item.mastered { border-left: 4px solid var(--success); }
+.hidden { display: none !important; }
+.hint-box { background: var(--bg2); padding: 12px; border-radius: 8px; margin: 8px 0; display: none; }
+.hint-box.show { display: block; }
+.correct { color: var(--success); font-weight: bold; }
+.incorrect { color: var(--accent); font-weight: bold; }
+.nav-bar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: var(--bg2); border-top: 1px solid var(--border);
+  display: flex; justify-content: space-around; padding: 8px 0;
+}
+.nav-btn {
+  background: none; border: none; color: var(--text2); font-size: 0.8rem;
+  padding: 8px 16px; cursor: pointer; display: flex; flex-direction: column; align-items: center;
+}
+.nav-btn.active { color: var(--accent); }
+.nav-btn span { font-size: 1.4rem; }
+.celebration {
+  background: linear-gradient(135deg, var(--success), var(--accent));
+  text-align: center; padding: 24px; border-radius: 12px; margin-bottom: 16px;
+}
+.celebration h2 { color: #fff; margin: 0; }
+.diff-pills { display: flex; gap: 8px; margin: 12px 0; flex-wrap: wrap; }
+.diff-pill {
+  padding: 8px 16px; border-radius: 20px; background: var(--card);
+  border: 1px solid var(--border); color: var(--text2); cursor: pointer;
+}
+.diff-pill.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+</style>
+<!-- KaTeX for math rendering -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<div id="app"></div>
+
+<nav class="nav-bar">
+  <button class="nav-btn active" onclick="showPage('topics')"><span>📚</span>Topics</button>
+  <button class="nav-btn" onclick="showPage('stats')"><span>📊</span>Stats</button>
+</nav>
+
+<script>
+// ============================================================================
+// DATA & STATE
+// ============================================================================
+
+const TOPICS = [
+  { id: 'bidmas', name: 'BIDMAS', icon: '🔢' },
+  { id: 'fractions', name: 'Fractions', icon: '➗' },
+  { id: 'percentages', name: 'Percentages', icon: '💯' },
+  { id: 'powers', name: 'Powers & Indices', icon: '📈' },
+  { id: 'logarithms', name: 'Logarithms', icon: '📐' },
+  { id: 'exponentials', name: 'Exponentials', icon: '🚀' },
+  { id: 'trigonometry', name: 'Trigonometry', icon: '📐' },
+  { id: 'vectors', name: 'Vectors', icon: '➡️' },
+  { id: 'algebra', name: 'Algebra', icon: '🔤' },
+  { id: 'simultaneous', name: 'Simultaneous Equations', icon: '⚖️' },
+  { id: 'quadratics', name: 'Quadratics', icon: '📊' },
+  { id: 'differentiation', name: 'Differentiation', icon: '📉' },
+  { id: 'stationary_points', name: 'Stationary Points', icon: '🎯' },
+  { id: 'integration', name: 'Integration', icon: '∫' },
+  { id: 'units', name: 'Units & Prefixes', icon: '📏' },
+];
+
+const MASTERY_REQUIRED = 10;
+const MASTERY_ACCURACY = 80;
+
+let state = {
+  page: 'topics',
+  currentTopic: null,
+  currentQuestion: null,
+  difficulty: 1,
+  showResult: false,
+  lastAnswer: '',
+  wasCorrect: false,
+};
+
+// Load progress from localStorage
+function loadProgress() {
+  try {
+    return JSON.parse(localStorage.getItem('mathtutor_progress')) || {};
+  } catch { return {}; }
+}
+
+function saveProgress(p) {
+  localStorage.setItem('mathtutor_progress', JSON.stringify(p));
+}
+
+function getTopicMastery(topicId) {
+  const p = loadProgress();
+  const data = p[topicId] || { correct: 0, total: 0 };
+  const accuracy = data.total > 0 ? Math.round(100 * data.correct / data.total) : 0;
+  const isMastered = data.correct >= MASTERY_REQUIRED && accuracy >= MASTERY_ACCURACY;
+  return { ...data, accuracy, isMastered, progress: Math.min(100, Math.round(100 * data.correct / MASTERY_REQUIRED)) };
+}
+
+function recordAttempt(topicId, correct) {
+  const p = loadProgress();
+  if (!p[topicId]) p[topicId] = { correct: 0, total: 0 };
+  p[topicId].total++;
+  if (correct) p[topicId].correct++;
+  saveProgress(p);
+}
+
+// ============================================================================
+// QUESTION GENERATORS
+// ============================================================================
+
+function rng(seed) {
+  return function() {
+    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+    return seed / 0x7fffffff;
+  };
+}
+
+function randInt(r, min, max) {
+  return Math.floor(r() * (max - min + 1)) + min;
+}
+
+function choice(r, arr) {
+  return arr[Math.floor(r() * arr.length)];
+}
+
+function gcd(a, b) { return b === 0 ? a : gcd(b, a % b); }
+
+function frac(n, d) {
+  return d === 1 ? String(n) : `\\frac{${n}}{${d}}`;
+}
+
+// Generator functions
+const generators = {
+  bidmas: (seed, diff) => {
+    const r = rng(seed);
+    const a = randInt(r, 2, 9), b = randInt(r, 2, 9), c = randInt(r, 1, 9);
+    const op = choice(r, ['+', '-']);
+    const ans = op === '+' ? a + b * c : a - b * c;
+    return {
+      prompt: `Evaluate: \\( ${a} ${op} ${b} \\times ${c} \\)`,
+      answer: String(ans),
+      hints: [
+        'Remember BIDMAS: multiplication before addition/subtraction.',
+        `Do \\( ${b} \\times ${c} = ${b*c} \\) first.`,
+        `Then \\( ${a} ${op} ${b*c} = ${ans} \\).`
+      ],
+      steps: [
+        `Multiplication first: \\( ${b} \\times ${c} = ${b*c} \\)`,
+        `Then: \\( ${a} ${op} ${b*c} = ${ans} \\)`
+      ]
+    };
+  },
+
+  fractions: (seed, diff) => {
+    const r = rng(seed);
+    const factor = randInt(r, 2, 6);
+    const num = randInt(r, 1, 6);
+    let den = randInt(r, num + 1, 10);
+    while (gcd(num, den) !== 1) den = randInt(r, num + 1, 10);
+    const bigN = num * factor, bigD = den * factor;
+    const g = gcd(bigN, bigD);
+    return {
+      prompt: `Simplify: \\( ${frac(bigN, bigD)} \\)`,
+      answer: `${bigN/g}/${bigD/g}`,
+      hints: [
+        'Find the GCD of numerator and denominator.',
+        `Both are divisible by ${factor}.`,
+        `Divide both by ${factor}.`
+      ],
+      steps: [
+        `GCD of ${bigN} and ${bigD} is ${factor}`,
+        `\\( ${frac(bigN, bigD)} = ${frac(bigN/g, bigD/g)} \\)`
+      ]
+    };
+  },
+
+  percentages: (seed, diff) => {
+    const r = rng(seed);
+    const pct = choice(r, [10, 15, 20, 25, 30, 50]);
+    const qty = randInt(r, 20, 200);
+    const ans = pct * qty / 100;
+    return {
+      prompt: `Find \\( ${pct}\\% \\) of \\( ${qty} \\)`,
+      answer: String(ans % 1 === 0 ? ans : ans.toFixed(2)),
+      hints: [
+        `Convert ${pct}% to decimal: ${pct/100}`,
+        `Multiply: ${pct/100} × ${qty}`,
+        `= ${ans}`
+      ],
+      steps: [
+        `\\( ${pct}\\% = ${pct/100} \\)`,
+        `\\( ${pct/100} \\times ${qty} = ${ans} \\)`
+      ]
+    };
+  },
+
+  powers: (seed, diff) => {
+    const r = rng(seed);
+    const base = randInt(r, 2, 5);
+    const m = randInt(r, 1, 4), n = randInt(r, 1, 4);
+    const ans = m + n;
+    return {
+      prompt: `Simplify: \\( ${base}^{${m}} \\times ${base}^{${n}} \\)`,
+      answer: `${base}^${ans}`,
+      hints: [
+        'When multiplying same base, add exponents.',
+        `\\( ${m} + ${n} = ${ans} \\)`,
+        `Answer: \\( ${base}^{${ans}} \\)`
+      ],
+      steps: [
+        `Add indices: \\( ${m} + ${n} = ${ans} \\)`,
+        `Result: \\( ${base}^{${ans}} \\)`
+      ]
+    };
+  },
+
+  logarithms: (seed, diff) => {
+    const r = rng(seed);
+    const exp = randInt(r, 1, 4);
+    const val = Math.pow(10, exp);
+    return {
+      prompt: `Evaluate: \\( \\log_{10}(${val}) \\)`,
+      answer: String(exp),
+      hints: [
+        '\\( \\log_{10}(x) \\) asks: 10 to what power = x?',
+        `\\( ${val} = 10^{${exp}} \\)`,
+        `So the answer is ${exp}.`
+      ],
+      steps: [
+        `\\( ${val} = 10^{${exp}} \\)`,
+        `Therefore \\( \\log_{10}(${val}) = ${exp} \\)`
+      ]
+    };
+  },
+
+  exponentials: (seed, diff) => {
+    const r = rng(seed);
+    const hl = choice(r, [2, 5, 10]);
+    const A0 = choice(r, [100, 200, 400]);
+    const periods = randInt(r, 1, 3);
+    const t = hl * periods;
+    const ans = A0 / Math.pow(2, periods);
+    return {
+      prompt: `Half-life is ${hl} years. Starting from ${A0}g, how much remains after ${t} years?`,
+      answer: `${ans}g`,
+      hints: [
+        `Number of half-lives: ${t} ÷ ${hl} = ${periods}`,
+        `Each half-life halves the amount.`,
+        `${A0} ÷ 2^${periods} = ${ans}`
+      ],
+      steps: [
+        `Half-lives: \\( ${t} \\div ${hl} = ${periods} \\)`,
+        `Remaining: \\( ${A0} \\div 2^{${periods}} = ${ans} \\)g`
+      ]
+    };
+  },
+
+  trigonometry: (seed, diff) => {
+    const r = rng(seed);
+    const angles = { 30: { sin: '1/2', cos: '√3/2' }, 45: { sin: '√2/2', cos: '√2/2' }, 60: { sin: '√3/2', cos: '1/2' } };
+    const ang = choice(r, [30, 45, 60]);
+    const func = choice(r, ['sin', 'cos']);
+    const ans = angles[ang][func];
+    return {
+      prompt: `What is \\( \\${func}(${ang}°) \\)? Give exact value.`,
+      answer: ans,
+      hints: [
+        'Recall special angle values.',
+        `For ${ang}°, think about the unit circle.`,
+        `\\( \\${func}(${ang}°) = ${ans} \\)`
+      ],
+      steps: [
+        `This is a standard special angle.`,
+        `\\( \\${func}(${ang}°) = ${ans} \\)`
+      ]
+    };
+  },
+
+  vectors: (seed, diff) => {
+    const r = rng(seed);
+    const ax = randInt(r, -5, 5), ay = randInt(r, -5, 5);
+    const bx = randInt(r, -5, 5), by = randInt(r, -5, 5);
+    const rx = ax + bx, ry = ay + by;
+    return {
+      prompt: `Calculate: \\( \\begin{pmatrix} ${ax} \\\\ ${ay} \\end{pmatrix} + \\begin{pmatrix} ${bx} \\\\ ${by} \\end{pmatrix} \\)`,
+      answer: `(${rx}, ${ry})`,
+      hints: [
+        'Add corresponding components.',
+        `x: ${ax} + ${bx} = ${rx}`,
+        `y: ${ay} + ${by} = ${ry}`
+      ],
+      steps: [
+        `x-component: \\( ${ax} + ${bx} = ${rx} \\)`,
+        `y-component: \\( ${ay} + ${by} = ${ry} \\)`,
+        `Result: \\( (${rx}, ${ry}) \\)`
+      ]
+    };
+  },
+
+  algebra: (seed, diff) => {
+    const r = rng(seed);
+    const a = randInt(r, 2, 6);
+    const b = randInt(r, 1, 9), c = randInt(r, 1, 9);
+    return {
+      prompt: `Expand: \\( ${a}(${b}x + ${c}) \\)`,
+      answer: `${a*b}x + ${a*c}`,
+      hints: [
+        'Multiply each term inside by the number outside.',
+        `\\( ${a} \\times ${b}x = ${a*b}x \\)`,
+        `\\( ${a} \\times ${c} = ${a*c} \\)`
+      ],
+      steps: [
+        `\\( ${a} \\times ${b}x = ${a*b}x \\)`,
+        `\\( ${a} \\times ${c} = ${a*c} \\)`,
+        `Result: \\( ${a*b}x + ${a*c} \\)`
+      ]
+    };
+  },
+
+  simultaneous: (seed, diff) => {
+    const r = rng(seed);
+    const x = randInt(r, 1, 5), y = randInt(r, 1, 5);
+    const a1 = randInt(r, 1, 3), b1 = randInt(r, 1, 3);
+    const c1 = a1 * x + b1 * y;
+    const c2 = x + y;
+    return {
+      prompt: `Solve: \\( ${a1}x + ${b1}y = ${c1} \\) and \\( x + y = ${c2} \\)`,
+      answer: `x = ${x}, y = ${y}`,
+      hints: [
+        'Use substitution or elimination.',
+        `From equation 2: x = ${c2} - y`,
+        'Substitute into equation 1.'
+      ],
+      steps: [
+        `From eq2: \\( x = ${c2} - y \\)`,
+        `Substitute into eq1 and solve`,
+        `\\( x = ${x}, y = ${y} \\)`
+      ]
+    };
+  },
+
+  quadratics: (seed, diff) => {
+    const r = rng(seed);
+    const p = randInt(r, 1, 6), q = randInt(r, 1, 6);
+    const b = -(p + q), c = p * q;
+    const bStr = b >= 0 ? `+ ${b}` : `- ${Math.abs(b)}`;
+    const cStr = c >= 0 ? `+ ${c}` : `- ${Math.abs(c)}`;
+    return {
+      prompt: `Solve: \\( x^2 ${bStr}x ${cStr} = 0 \\)`,
+      answer: `x = ${p} or x = ${q}`,
+      hints: [
+        'Find two numbers that multiply to c and add to b.',
+        `Product = ${c}, Sum = ${b}`,
+        `The numbers are ${-p} and ${-q}.`
+      ],
+      steps: [
+        `Factorise: \\( (x - ${p})(x - ${q}) = 0 \\)`,
+        `Solutions: \\( x = ${p} \\) or \\( x = ${q} \\)`
+      ]
+    };
+  },
+
+  differentiation: (seed, diff) => {
+    const r = rng(seed);
+    const a = randInt(r, 1, 6), n = randInt(r, 2, 5);
+    const newCoeff = a * n, newPow = n - 1;
+    const ans = newPow === 1 ? `${newCoeff}x` : `${newCoeff}x^${newPow}`;
+    return {
+      prompt: `Differentiate: \\( y = ${a}x^{${n}} \\)`,
+      answer: ans,
+      hints: [
+        'Power rule: bring down the power, reduce by 1.',
+        `Coefficient: ${a} × ${n} = ${newCoeff}`,
+        `New power: ${n} - 1 = ${newPow}`
+      ],
+      steps: [
+        `Multiply coefficient by power: \\( ${a} \\times ${n} = ${newCoeff} \\)`,
+        `Reduce power by 1: \\( ${n} - 1 = ${newPow} \\)`,
+        `Result: \\( ${ans} \\)`
+      ]
+    };
+  },
+
+  stationary_points: (seed, diff) => {
+    const r = rng(seed);
+    const a = randInt(r, 1, 3);
+    const b = randInt(r, 2, 8);
+    const xStat = b / (2 * a);
+    const bStr = `- ${b}`;
+    return {
+      prompt: `Find the x-coordinate of the stationary point of \\( y = ${a}x^2 ${bStr}x + 5 \\)`,
+      answer: String(xStat),
+      hints: [
+        'Differentiate and set dy/dx = 0.',
+        `\\( \\frac{dy}{dx} = ${2*a}x - ${b} \\)`,
+        `Set to 0: \\( ${2*a}x = ${b} \\)`
+      ],
+      steps: [
+        `\\( \\frac{dy}{dx} = ${2*a}x - ${b} \\)`,
+        `Set \\( ${2*a}x - ${b} = 0 \\)`,
+        `\\( x = ${xStat} \\)`
+      ]
+    };
+  },
+
+  integration: (seed, diff) => {
+    const r = rng(seed);
+    const a = randInt(r, 1, 6), n = randInt(r, 1, 4);
+    const newPow = n + 1;
+    const g = gcd(a, newPow);
+    const coeff = g === newPow ? String(a / g) : `${a/g}/${newPow/g}`;
+    return {
+      prompt: `Integrate: \\( \\int ${a}x^{${n}} \\, dx \\)`,
+      answer: `${coeff}x^${newPow} + C`,
+      hints: [
+        'Add 1 to power, divide by new power.',
+        `New power: ${n} + 1 = ${newPow}`,
+        `Coefficient: ${a} ÷ ${newPow}`
+      ],
+      steps: [
+        `Add 1 to power: \\( ${n} + 1 = ${newPow} \\)`,
+        `Divide coefficient: \\( ${a} \\div ${newPow} \\)`,
+        `Result: \\( ${coeff}x^{${newPow}} + C \\)`
+      ]
+    };
+  },
+
+  units: (seed, diff) => {
+    const r = rng(seed);
+    const prefixes = [
+      { name: 'kilo', sym: 'k', exp: 3 },
+      { name: 'mega', sym: 'M', exp: 6 },
+      { name: 'milli', sym: 'm', exp: -3 },
+      { name: 'micro', sym: 'μ', exp: -6 },
+    ];
+    const p = choice(r, prefixes);
+    return {
+      prompt: `What power of 10 does the prefix '${p.name}' (${p.sym}) represent?`,
+      answer: `10^${p.exp}`,
+      hints: [
+        'Engineering prefixes represent powers of 10.',
+        `'${p.name}' is used for ${p.exp > 0 ? 'large' : 'small'} numbers.`,
+        `It represents \\( 10^{${p.exp}} \\)`
+      ],
+      steps: [
+        `'${p.name}' = \\( 10^{${p.exp}} \\)`
+      ]
+    };
+  }
+};
+
+function generateQuestion(topicId, difficulty = 1) {
+  const seed = Date.now() + Math.floor(Math.random() * 10000);
+  const gen = generators[topicId];
+  if (!gen) return null;
+  const q = gen(seed, difficulty);
+  q.topicId = topicId;
+  q.seed = seed;
+  return q;
+}
+
+// ============================================================================
+// RENDERING
+// ============================================================================
+
+function render() {
+  const app = document.getElementById('app');
+  
+  if (state.page === 'topics') {
+    app.innerHTML = renderTopics();
+  } else if (state.page === 'practice') {
+    app.innerHTML = renderPractice();
+  } else if (state.page === 'stats') {
+    app.innerHTML = renderStats();
+  }
+  
+  // Re-render math
+  setTimeout(() => {
+    if (typeof renderMathInElement !== 'undefined') {
+      renderMathInElement(app, {
+        delimiters: [
+          {left: '\\(', right: '\\)', display: false},
+          {left: '\\[', right: '\\]', display: true},
+        ],
+        throwOnError: false
+      });
+    }
+  }, 50);
+  
+  // Update nav
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.textContent.toLowerCase().includes(state.page));
+  });
+}
+
+function renderTopics() {
+  const mastered = TOPICS.filter(t => getTopicMastery(t.id).isMastered).length;
+  
+  return `
+    <h1>📐 Math Tutor</h1>
+    <p style="color:var(--text2); margin-bottom:16px;">T192/T193 Engineering Mathematics</p>
+    
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span><strong>🏆 Progress</strong></span>
+        <span style="color:var(--accent);">${mastered}/${TOPICS.length} mastered</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" style="width:${Math.round(100*mastered/TOPICS.length)}%; background:var(--success);"></div>
+      </div>
+    </div>
+    
+    <h2>Topics</h2>
+    <ul class="topic-list">
+      ${TOPICS.map(t => {
+        const m = getTopicMastery(t.id);
+        return `
+          <li class="topic-item ${m.isMastered ? 'mastered' : ''}" onclick="startPractice('${t.id}')">
+            <div>
+              <span>${t.icon} ${t.name}</span>
+              ${m.isMastered ? '<span style="color:var(--success);"> ✓</span>' : ''}
+              ${!m.isMastered && m.progress > 0 ? `<div class="progress-bar" style="width:100px; height:6px; margin-top:4px;">
+                <div class="progress-fill" style="width:${m.progress}%; background:${m.accuracy >= 80 ? 'var(--accent)' : 'var(--warning)'};"></div>
+              </div>` : ''}
+            </div>
+            <span class="btn btn-sm ${m.isMastered ? 'btn-success' : ''}">${m.isMastered ? 'Review' : 'Practice'}</span>
+          </li>
+        `;
+      }).join('')}
+    </ul>
+  `;
+}
+
+function renderPractice() {
+  const topic = TOPICS.find(t => t.id === state.currentTopic);
+  const m = getTopicMastery(state.currentTopic);
+  const q = state.currentQuestion;
+  
+  if (state.showResult) {
+    const justMastered = m.isMastered && m.correct === MASTERY_REQUIRED;
+    const nextIdx = TOPICS.findIndex(t => t.id === state.currentTopic) + 1;
+    const nextTopic = nextIdx < TOPICS.length ? TOPICS[nextIdx] : null;
+    
+    return `
+      ${justMastered ? `
+        <div class="celebration">
+          <h2 style="font-size:2rem;">🎉</h2>
+          <h2>Topic Mastered!</h2>
+          <p style="color:rgba(255,255,255,0.9);">${m.correct} correct at ${m.accuracy}% accuracy</p>
+          ${nextTopic ? `<button class="btn btn-success" style="margin-top:12px;" onclick="startPractice('${nextTopic.id}')">Next: ${nextTopic.name} →</button>` : ''}
+        </div>
+      ` : ''}
+      
+      <h1>${state.wasCorrect ? '<span class="correct">✓ Correct!</span>' : '<span class="incorrect">✗ Incorrect</span>'}</h1>
+      
+      ${!justMastered ? `
+        <div class="card">
+          <div style="display:flex; justify-content:space-between;">
+            <span>${m.isMastered ? '✅ Mastered' : `📈 ${m.correct}/10 correct (${m.accuracy}%)`}</span>
+            ${!m.isMastered ? `<span style="color:var(--text2);">Need ${Math.max(0, MASTERY_REQUIRED - m.correct)} more</span>` : ''}
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width:${m.progress}%; background:${m.isMastered ? 'var(--success)' : m.accuracy >= 80 ? 'var(--accent)' : 'var(--warning)'};"></div>
+          </div>
+        </div>
+      ` : ''}
+      
+      <div class="card">
+        <p><strong>Question:</strong> ${q.prompt}</p>
+        <p><strong>Your answer:</strong> ${state.lastAnswer}</p>
+        <p><strong>Correct answer:</strong> ${q.answer}</p>
+      </div>
+      
+      <div class="card">
+        <strong>Solution:</strong>
+        <ol style="padding-left:20px; margin-top:8px;">
+          ${q.steps.map(s => `<li style="margin:4px 0;">${s}</li>`).join('')}
+        </ol>
+      </div>
+      
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="btn" onclick="nextQuestion()">Next Question →</button>
+        <button class="btn btn-secondary" onclick="showPage('topics')">Back to Topics</button>
+      </div>
+    `;
+  }
+  
+  return `
+    <button class="btn btn-sm btn-secondary" onclick="showPage('topics')" style="margin-bottom:12px;">← Back</button>
+    <h1>${topic.icon} ${topic.name}</h1>
+    
+    <div class="card">
+      <div style="display:flex; justify-content:space-between;">
+        <span>${m.isMastered ? '✅ Mastered!' : `📈 ${m.correct}/10 correct (${m.accuracy}%)`}</span>
+        ${!m.isMastered ? `<span style="color:var(--text2);">Need ${Math.max(0, MASTERY_REQUIRED - m.correct)} more at 80%+</span>` : ''}
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" style="width:${m.progress}%; background:${m.isMastered ? 'var(--success)' : m.accuracy >= 80 ? 'var(--accent)' : 'var(--warning)'};"></div>
+      </div>
+    </div>
+    
+    <div class="diff-pills">
+      <span class="diff-pill ${state.difficulty===1 ? 'active' : ''}" onclick="setDifficulty(1)">⭐ Easy</span>
+      <span class="diff-pill ${state.difficulty===2 ? 'active' : ''}" onclick="setDifficulty(2)">⭐⭐ Medium</span>
+      <span class="diff-pill ${state.difficulty===3 ? 'active' : ''}" onclick="setDifficulty(3)">⭐⭐⭐ Hard</span>
+    </div>
+    
+    <div class="card">
+      <p style="font-size:1.1rem; margin-bottom:16px;"><strong>${q.prompt}</strong></p>
+      
+      <form onsubmit="submitAnswer(event)">
+        <input type="text" id="answer" placeholder="Your answer..." autocomplete="off" style="margin-bottom:12px;">
+        <button type="submit" class="btn" style="width:100%;">Submit</button>
+      </form>
+      
+      <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
+        <button class="btn btn-sm btn-secondary" onclick="showHint(0)">💡 Hint 1</button>
+        <button class="btn btn-sm btn-secondary" onclick="showHint(1)">💡 Hint 2</button>
+        <button class="btn btn-sm btn-secondary" onclick="showHint(2)">💡 Hint 3</button>
+      </div>
+      
+      <div id="hint0" class="hint-box">💡 ${q.hints[0]}</div>
+      <div id="hint1" class="hint-box">💡 ${q.hints[1]}</div>
+      <div id="hint2" class="hint-box">💡 ${q.hints[2]}</div>
+    </div>
+    
+    <button class="btn btn-secondary" onclick="nextQuestion()" style="width:100%;">↻ Skip Question</button>
+  `;
+}
+
+function renderStats() {
+  const totalCorrect = TOPICS.reduce((sum, t) => sum + (loadProgress()[t.id]?.correct || 0), 0);
+  const totalAttempts = TOPICS.reduce((sum, t) => sum + (loadProgress()[t.id]?.total || 0), 0);
+  const accuracy = totalAttempts > 0 ? Math.round(100 * totalCorrect / totalAttempts) : 0;
+  const mastered = TOPICS.filter(t => getTopicMastery(t.id).isMastered).length;
+  
+  return `
+    <h1>📊 Statistics</h1>
+    
+    <div class="card">
+      <h2 style="margin-top:0;">Overall</h2>
+      <p>Total attempts: <strong>${totalAttempts}</strong></p>
+      <p>Correct: <strong>${totalCorrect}</strong></p>
+      <p>Accuracy: <strong>${accuracy}%</strong></p>
+      <p>Topics mastered: <strong>${mastered}/${TOPICS.length}</strong></p>
+    </div>
+    
+    <h2>By Topic</h2>
+    ${TOPICS.map(t => {
+      const m = getTopicMastery(t.id);
+      return `
+        <div class="card" style="padding:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span>${t.icon} ${t.name} ${m.isMastered ? '✅' : ''}</span>
+            <span style="color:var(--text2);">${m.correct}/${m.total} (${m.accuracy}%)</span>
+          </div>
+          ${m.total > 0 ? `
+            <div class="progress-bar" style="height:6px; margin-top:8px;">
+              <div class="progress-fill" style="width:${m.progress}%; background:${m.isMastered ? 'var(--success)' : 'var(--accent)'};"></div>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }).join('')}
+    
+    <button class="btn btn-secondary" onclick="if(confirm('Reset all progress?')){localStorage.clear();render();}" style="width:100%; margin-top:16px;">
+      🗑️ Reset Progress
+    </button>
+  `;
+}
+
+// ============================================================================
+// ACTIONS
+// ============================================================================
+
+function showPage(page) {
+  state.page = page;
+  state.showResult = false;
+  render();
+}
+
+function startPractice(topicId) {
+  state.page = 'practice';
+  state.currentTopic = topicId;
+  state.currentQuestion = generateQuestion(topicId, state.difficulty);
+  state.showResult = false;
+  render();
+  setTimeout(() => document.getElementById('answer')?.focus(), 100);
+}
+
+function setDifficulty(d) {
+  state.difficulty = d;
+  state.currentQuestion = generateQuestion(state.currentTopic, d);
+  render();
+}
+
+function nextQuestion() {
+  state.currentQuestion = generateQuestion(state.currentTopic, state.difficulty);
+  state.showResult = false;
+  render();
+  setTimeout(() => document.getElementById('answer')?.focus(), 100);
+}
+
+function showHint(n) {
+  const el = document.getElementById('hint' + n);
+  if (el) {
+    el.classList.toggle('show');
+    if (typeof renderMathInElement !== 'undefined') {
+      renderMathInElement(el, {
+        delimiters: [{left: '\\(', right: '\\)', display: false}],
+        throwOnError: false
+      });
+    }
+  }
+}
+
+function submitAnswer(e) {
+  e.preventDefault();
+  const input = document.getElementById('answer');
+  const userAnswer = input.value.trim();
+  if (!userAnswer) return;
+  
+  const q = state.currentQuestion;
+  const correct = q.answer.toLowerCase().replace(/\s/g, '');
+  const given = userAnswer.toLowerCase().replace(/\s/g, '');
+  
+  let isCorrect = given === correct;
+  
+  // Numeric comparison fallback
+  if (!isCorrect) {
+    try {
+      const numGiven = parseFloat(given.replace(/[^0-9.-]/g, ''));
+      const numCorrect = parseFloat(correct.replace(/[^0-9.-]/g, ''));
+      if (Math.abs(numGiven - numCorrect) < 0.05) isCorrect = true;
+    } catch {}
+  }
+  
+  recordAttempt(state.currentTopic, isCorrect);
+  
+  state.lastAnswer = userAnswer;
+  state.wasCorrect = isCorrect;
+  state.showResult = true;
+  render();
+}
+
+// ============================================================================
+// INIT
+// ============================================================================
+
+render();
+</script>
+</body>
+</html>
