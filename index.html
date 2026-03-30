@@ -380,15 +380,15 @@ const generators = {
       const a = randInt(r, 2, 9), b = randInt(r, 2, 9), c = randInt(r, 1, 9);
       const op = choice(r, ['+', '-']);
       const ans = op === '+' ? a + b * c : a - b * c;
-      return { prompt: `Evaluate: \\( ${a} ${op} ${b} \\times ${c} \\)`, answer: String(ans), steps: [`Multiplication first: ${b} x ${c} = ${b*c}`, `Then: ${a} ${op} ${b*c} = ${ans}`], hints: ['BIDMAS: multiplication before addition/subtraction', `Do ${b} x ${c} first`, `= ${ans}`], mistakeTypes: ['arithmetic'] };
+      return { prompt: `Evaluate: \\( ${a} ${op} ${b} \\times ${c} \\)`, answer: String(ans), steps: [`Multiplication first: \\( ${b} \\times ${c} = ${b*c} \\)`, `Then: \\( ${a} ${op} ${b*c} = ${ans} \\)`], hints: ['BIDMAS: multiplication before addition/subtraction', `Do \\( ${b} \\times ${c} \\) first`, `\\( = ${ans} \\)`], mistakeTypes: ['arithmetic'] };
     } else if (diff === 2) {
       const a = randInt(r, 2, 9), b = randInt(r, 2, 9), c = randInt(r, 1, 5), d = randInt(r, 1, 9);
       const ans = (a + b) * c - d;
-      return { prompt: `Evaluate: \\( (${a} + ${b}) \\times ${c} - ${d} \\)`, answer: String(ans), steps: [`Brackets: ${a}+${b}=${a+b}`, `Multiply: ${a+b} x ${c} = ${(a+b)*c}`, `Subtract: ${(a+b)*c} - ${d} = ${ans}`], hints: ['Brackets first', `${a}+${b}=${a+b}`, `Then multiply and subtract`], mistakeTypes: ['arithmetic'] };
+      return { prompt: `Evaluate: \\( (${a} + ${b}) \\times ${c} - ${d} \\)`, answer: String(ans), steps: [`Brackets: \\( ${a} + ${b} = ${a+b} \\)`, `Multiply: \\( ${a+b} \\times ${c} = ${(a+b)*c} \\)`, `Subtract: \\( ${(a+b)*c} - ${d} = ${ans} \\)`], hints: ['Brackets first', `\\( ${a} + ${b} = ${a+b} \\)`, `Then multiply and subtract`], mistakeTypes: ['arithmetic'] };
     } else {
       const a = randInt(r, 2, 6), b = randInt(r, 2, 4), c = randInt(r, 1, 5), d = randInt(r, 1, 9);
       const ans = a*a + b * c - d;
-      return { prompt: `Evaluate: \\( ${a}^{2} + ${b} \\times ${c} - ${d} \\)`, answer: String(ans), steps: [`Indices: ${a}^2=${a*a}`, `Multiply: ${b}x${c}=${b*c}`, `Left to right: ${a*a}+${b*c}-${d}=${ans}`], hints: ['Indices before multiplication', `${a}^2=${a*a}`, `Then ${b}x${c}=${b*c}`], mistakeTypes: ['arithmetic'] };
+      return { prompt: `Evaluate: \\( ${a}^{2} + ${b} \\times ${c} - ${d} \\)`, answer: String(ans), steps: [`Indices: \\( ${a}^2 = ${a*a} \\)`, `Multiply: \\( ${b} \\times ${c} = ${b*c} \\)`, `Left to right: \\( ${a*a} + ${b*c} - ${d} = ${ans} \\)`], hints: ['Indices before multiplication', `\\( ${a}^2 = ${a*a} \\)`, `Then \\( ${b} \\times ${c} = ${b*c} \\)`], mistakeTypes: ['arithmetic'] };
     }
   },
   'fractions.simplify': (seed, diff) => {
@@ -397,7 +397,7 @@ const generators = {
     let num = randInt(r, 1, 6), den = randInt(r, num + 1, 10);
     while (gcd(num, den) !== 1) den = randInt(r, num + 1, 10);
     const bigN = num * factor, bigD = den * factor;
-    return { prompt: `Simplify: \\( ${frac(bigN, bigD)} \\)`, answer: `${num}/${den}`, steps: [`GCD of ${bigN} and ${bigD} is ${factor}`, `Divide both by ${factor}: ${num}/${den}`], hints: ['Find GCD', `Both divisible by ${factor}`, `${bigN}/${factor}=${num}, ${bigD}/${factor}=${den}`], mistakeTypes: ['arithmetic'] };
+    return { prompt: `Simplify: \\( ${frac(bigN, bigD)} \\)`, answer: `${num}/${den}`, steps: [`GCD of \\( ${bigN} \\) and \\( ${bigD} \\) is \\( ${factor} \\)`, `Divide both by \\( ${factor} \\): \\( ${frac(num,den)} \\)`], hints: ['Find GCD', `Both divisible by \\( ${factor} \\)`, `\\( \\frac{${bigN}}{${factor}} = ${num} \\), \\( \\frac{${bigD}}{${factor}} = ${den} \\)`], mistakeTypes: ['arithmetic'] };
   },
   'fractions.add_sub': (seed, diff) => {
     const r = rng(seed);
@@ -410,7 +410,7 @@ const generators = {
     const sf = simplifyFrac(Math.abs(resN), lcd);
     const sign = resN < 0 ? '-' : '';
     const ans = sf.den === 1 ? `${sign}${sf.num}` : `${sign}${sf.num}/${sf.den}`;
-    return { prompt: `Calculate: \\( ${frac(n1,d1)} ${op} ${frac(n2,d2)} \\)`, answer: ans, steps: [`LCD = ${lcd}`, `Convert: ${newN1}/${lcd} ${op} ${newN2}/${lcd}`, `= ${resN}/${lcd}`, sf.den!==lcd?`Simplify: ${ans}`:null].filter(Boolean), hints: ['Find common denominator', `LCD = ${lcd}`, `Convert then ${op==='+'?'add':'subtract'}`], mistakeTypes: ['arithmetic'] };
+    return { prompt: `Calculate: \\( ${frac(n1,d1)} ${op} ${frac(n2,d2)} \\)`, answer: ans, steps: [`LCD \\( = ${lcd} \\)`, `Convert: \\( ${frac(newN1,lcd)} ${op} ${frac(newN2,lcd)} \\)`, `\\( = ${frac(resN,lcd)} \\)`, sf.den!==lcd?`Simplify: \\( ${ans} \\)`:null].filter(Boolean), hints: ['Find common denominator', `LCD \\( = ${lcd} \\)`, `Convert then ${op==='+'?'add':'subtract'}`], mistakeTypes: ['arithmetic'] };
   },
   'fractions.mul_div': (seed, diff) => {
     const r = rng(seed);
@@ -423,7 +423,7 @@ const generators = {
     const sf = simplifyFrac(prodN, prodD);
     const ans = sf.den === 1 ? String(sf.num) : `${sf.num}/${sf.den}`;
     const opStr = op === '*' ? '\\times' : '\\div';
-    return { prompt: `Calculate: \\( ${frac(n1,d1)} ${opStr} ${frac(n2,d2)} \\)`, answer: ans, steps: op==='*'?[`Multiply tops: ${n1}x${n2}=${prodN}`,`Multiply bottoms: ${d1}x${d2}=${prodD}`,`= ${prodN}/${prodD}`,sf.num!==prodN?`Simplify: ${ans}`:null].filter(Boolean):[`Multiply by reciprocal: ${n1}/${d1} x ${d2}/${n2}`,`= ${prodN}/${prodD}`,sf.num!==prodN?`Simplify: ${ans}`:null].filter(Boolean), hints: op==='*'?['Multiply tops and bottoms',`${n1}x${n2}=${prodN}`,`${d1}x${d2}=${prodD}`]:['Divide = multiply by reciprocal',`Flip second fraction`,`Then multiply`], mistakeTypes: ['arithmetic'] };
+    return { prompt: `Calculate: \\( ${frac(n1,d1)} ${opStr} ${frac(n2,d2)} \\)`, answer: ans, steps: op==='*'?[`Multiply tops: \\( ${n1} \\times ${n2} = ${prodN} \\)`,`Multiply bottoms: \\( ${d1} \\times ${d2} = ${prodD} \\)`,`\\( = ${frac(prodN,prodD)} \\)`,sf.num!==prodN?`Simplify: \\( ${ans} \\)`:null].filter(Boolean):[`Multiply by reciprocal: \\( ${frac(n1,d1)} \\times ${frac(d2,n2)} \\)`,`\\( = ${frac(prodN,prodD)} \\)`,sf.num!==prodN?`Simplify: \\( ${ans} \\)`:null].filter(Boolean), hints: op==='*'?['Multiply tops and bottoms',`\\( ${n1} \\times ${n2} = ${prodN} \\)`,`\\( ${d1} \\times ${d2} = ${prodD} \\)`]:['Divide = multiply by reciprocal',`Flip second fraction`,`Then multiply`], mistakeTypes: ['arithmetic'] };
   },
   'fractions.of_quantity': (seed, diff) => {
     const r = rng(seed);
@@ -431,14 +431,14 @@ const generators = {
     const num = randInt(r, 1, den-1);
     const qty = den * randInt(r, 2, 10);
     const ansVal = (num/den)*qty;
-    return { prompt: `Find \\( ${frac(num,den)} \\) of \\( ${qty} \\)`, answer: String(ansVal), steps: [`Divide: ${qty}/${den}=${qty/den}`,`Multiply: ${qty/den}x${num}=${ansVal}`], hints: ['"Of" means multiply',`1/${den} of ${qty} = ${qty/den}`,`Then x${num}`], mistakeTypes: ['arithmetic'] };
+    return { prompt: `Find \\( ${frac(num,den)} \\) of \\( ${qty} \\)`, answer: String(ansVal), steps: [`Divide: \\( ${qty} \\div ${den} = ${qty/den} \\)`,`Multiply: \\( ${qty/den} \\times ${num} = ${ansVal} \\)`], hints: ['"Of" means multiply',`\\( \\frac{1}{${den}} \\) of \\( ${qty} = ${qty/den} \\)`,`Then \\( \\times ${num} \\)`], mistakeTypes: ['arithmetic'] };
   },
   'percentages.of_quantity': (seed, diff) => {
     const r = rng(seed);
     const pct = choice(r, diff===1?[10,20,25,50]:[15,30,40,75]);
     const qty = randInt(r, 50, 500);
     const ansVal = pct*qty/100;
-    return { prompt: `Find \\( ${pct}\\% \\) of \\( ${qty} \\)`, answer: String(ansVal), steps: [`${pct}% = ${pct/100}`,`${pct/100} x ${qty} = ${ansVal}`], hints: [`${pct}% = ${pct/100}`,`Multiply: ${pct/100} x ${qty}`,`= ${ansVal}`], mistakeTypes: ['arithmetic'] };
+    return { prompt: `Find \\( ${pct}\\% \\) of \\( ${qty} \\)`, answer: String(ansVal), steps: [`\\( ${pct}\\% = ${pct/100} \\)`,`\\( ${pct/100} \\times ${qty} = ${ansVal} \\)`], hints: [`\\( ${pct}\\% = ${pct/100} \\)`,`Multiply: \\( ${pct/100} \\times ${qty} \\)`,`\\( = ${ansVal} \\)`], mistakeTypes: ['arithmetic'] };
   },
   'percentages.increase_decrease': (seed, diff) => {
     const r = rng(seed);
@@ -447,14 +447,14 @@ const generators = {
     const dir = choice(r, ['increase', 'decrease']);
     const factor = dir==='increase' ? 1+pct/100 : 1-pct/100;
     const ansVal = parseFloat((original*factor).toFixed(2));
-    return { prompt: `${dir.charAt(0).toUpperCase()+dir.slice(1)} \\( ${original} \\) by \\( ${pct}\\% \\)`, answer: String(ansVal), steps: [`${pct}% of ${original} = ${pct*original/100}`,`${dir==='increase'?'Add':'Subtract'}: ${original} ${dir==='increase'?'+':'-'} ${pct*original/100} = ${ansVal}`], hints: [`Find ${pct}% of ${original}`,`= ${pct*original/100}`,`${dir==='increase'?'Add to':'Subtract from'} ${original}`], mistakeTypes: ['arithmetic'] };
+    return { prompt: `${dir.charAt(0).toUpperCase()+dir.slice(1)} \\( ${original} \\) by \\( ${pct}\\% \\)`, answer: String(ansVal), steps: [`\\( ${pct}\\% \\) of \\( ${original} = ${pct*original/100} \\)`,`${dir==='increase'?'Add':'Subtract'}: \\( ${original} ${dir==='increase'?'+':'-'} ${pct*original/100} = ${ansVal} \\)`], hints: [`Find \\( ${pct}\\% \\) of \\( ${original} \\)`,`\\( = ${pct*original/100} \\)`,`${dir==='increase'?'Add to':'Subtract from'} \\( ${original} \\)`], mistakeTypes: ['arithmetic'] };
   },
   'percentages.scale_factors': (seed, diff) => {
     const r = rng(seed);
     const pct = choice(r, [10,20,25,50]);
     const dir = choice(r, ['increase','decrease']);
     const sf = dir==='increase' ? 1+pct/100 : 1-pct/100;
-    return { prompt: `Scale factor for ${pct}% ${dir}?`, answer: String(sf), steps: [`${pct}% = ${pct/100}`,`Scale factor = ${dir==='increase'?'1+':'1-'}${pct/100} = ${sf}`], hints: ['Scale factor = 1 +/- percentage',`${pct}% = ${pct/100}`,`${dir==='increase'?'1+':'1-'}${pct/100} = ${sf}`], mistakeTypes: ['arithmetic'] };
+    return { prompt: `Scale factor for \\( ${pct}\\% \\) ${dir}?`, answer: String(sf), steps: [`\\( ${pct}\\% = ${pct/100} \\)`,`Scale factor \\( = ${dir==='increase'?'1+':'1-'}${pct/100} = ${sf} \\)`], hints: ['Scale factor = 1 +/- percentage',`\\( ${pct}\\% = ${pct/100} \\)`,`\\( ${dir==='increase'?'1+':'1-'}${pct/100} = ${sf} \\)`], mistakeTypes: ['arithmetic'] };
   },
   'powers.laws': (seed, diff) => {
     const r = rng(seed);
@@ -462,12 +462,12 @@ const generators = {
     const m = randInt(r, 1, 4), n = randInt(r, 1, 4);
     const variant = seed % 3;
     if (variant === 0) {
-      return { prompt: `Simplify: \\( ${base}^{${m}} \\times ${base}^{${n}} \\)`, answer: `${base}^${m+n}`, steps: [`Add indices: ${m}+${n}=${m+n}`,`= ${base}^${m+n}`], hints: ['Multiply = add indices',`${m}+${n}=${m+n}`,'Write result'], mistakeTypes: ['algebra'] };
+      return { prompt: `Simplify: \\( ${base}^{${m}} \\times ${base}^{${n}} \\)`, answer: `${base}^${m+n}`, steps: [`Add indices: \\( ${m} + ${n} = ${m+n} \\)`,`\\( = ${base}^{${m+n}} \\)`], hints: ['Multiply = add indices',`\\( ${m} + ${n} = ${m+n} \\)`,'Write result'], mistakeTypes: ['algebra'] };
     } else if (variant === 1) {
       const m2 = randInt(r, 3, 7), n2 = randInt(r, 1, m2-1);
-      return { prompt: `Simplify: \\( ${base}^{${m2}} \\div ${base}^{${n2}} \\)`, answer: `${base}^${m2-n2}`, steps: [`Subtract indices: ${m2}-${n2}=${m2-n2}`,`= ${base}^${m2-n2}`], hints: ['Divide = subtract indices',`${m2}-${n2}=${m2-n2}`,'Write result'], mistakeTypes: ['algebra'] };
+      return { prompt: `Simplify: \\( ${base}^{${m2}} \\div ${base}^{${n2}} \\)`, answer: `${base}^${m2-n2}`, steps: [`Subtract indices: \\( ${m2} - ${n2} = ${m2-n2} \\)`,`\\( = ${base}^{${m2-n2}} \\)`], hints: ['Divide = subtract indices',`\\( ${m2} - ${n2} = ${m2-n2} \\)`,'Write result'], mistakeTypes: ['algebra'] };
     } else {
-      return { prompt: `Simplify: \\( (${base}^{${m}})^{${n}} \\)`, answer: `${base}^${m*n}`, steps: [`Multiply indices: ${m}x${n}=${m*n}`,`= ${base}^${m*n}`], hints: ['Power of power = multiply',`${m}x${n}=${m*n}`,'Write result'], mistakeTypes: ['algebra'] };
+      return { prompt: `Simplify: \\( (${base}^{${m}})^{${n}} \\)`, answer: `${base}^${m*n}`, steps: [`Multiply indices: \\( ${m} \\times ${n} = ${m*n} \\)`,`\\( = ${base}^{${m*n}} \\)`], hints: ['Power of power = multiply',`\\( ${m} \\times ${n} = ${m*n} \\)`,'Write result'], mistakeTypes: ['algebra'] };
     }
   },
   'powers.negative_fractional': (seed, diff) => {
@@ -475,28 +475,28 @@ const generators = {
     if (seed % 2 === 0) {
       const bases = [[4,2,2],[9,2,3],[16,2,4],[25,2,5],[8,3,2],[27,3,3]];
       const [base,root,result] = choice(r, bases);
-      return { prompt: `Evaluate: \\( ${base}^{${frac(1,root)}} \\)`, answer: String(result), steps: [`x^(1/${root}) = ${root}th root of x`,`${root}th root of ${base} = ${result}`], hints: ['Fractional index = root',`What^${root} = ${base}?`,`= ${result}`], mistakeTypes: ['algebra'] };
+      return { prompt: `Evaluate: \\( ${base}^{${frac(1,root)}} \\)`, answer: String(result), steps: [`\\( x^{\\frac{1}{${root}}} = \\sqrt[${root}]{x} \\)`,`\\( \\sqrt[${root}]{${base}} = ${result} \\)`], hints: ['Fractional index = root',`What\\( ^{${root}} = ${base} \\)?`,`\\( = ${result} \\)`], mistakeTypes: ['algebra'] };
     } else {
       const base = randInt(r, 2, 5), n = randInt(r, 1, 2);
       const result = Math.pow(base, n);
-      return { prompt: `Evaluate: \\( ${base}^{-${n}} \\)`, answer: `1/${result}`, steps: [`Negative = reciprocal: 1/${base}^${n}`,`${base}^${n}=${result}`,`= 1/${result}`], hints: ['Negative power = 1/...',`${base}^${n}=${result}`,`= 1/${result}`], mistakeTypes: ['algebra'] };
+      return { prompt: `Evaluate: \\( ${base}^{-${n}} \\)`, answer: `1/${result}`, steps: [`Negative = reciprocal: \\( \\frac{1}{${base}^{${n}}} \\)`,`\\( ${base}^{${n}} = ${result} \\)`,`\\( = \\frac{1}{${result}} \\)`], hints: ['Negative power = \\( \\frac{1}{...} \\)',`\\( ${base}^{${n}} = ${result} \\)`,`\\( = \\frac{1}{${result}} \\)`], mistakeTypes: ['algebra'] };
     }
   },
   'logarithms.basics': (seed, diff) => {
     const r = rng(seed);
     const exp = randInt(r, 1, 4);
     const val = Math.pow(10, exp);
-    return { prompt: `Evaluate: \\( \\log_{10}(${val}) \\)`, answer: String(exp), steps: [`log10 asks: 10^? = ${val}`,`10^${exp} = ${val}`,`So log10(${val}) = ${exp}`], hints: ['What power of 10?',`${val} = 10^?`,`= ${exp}`], mistakeTypes: ['log'] };
+    return { prompt: `Evaluate: \\( \\log_{10}(${val}) \\)`, answer: String(exp), steps: [`\\( \\log_{10} \\) asks: \\( 10^{?} = ${val} \\)`,`\\( 10^{${exp}} = ${val} \\)`,`So \\( \\log_{10}(${val}) = ${exp} \\)`], hints: ['What power of 10?',`\\( ${val} = 10^{?} \\)`,`\\( = ${exp} \\)`], mistakeTypes: ['log'] };
   },
   'logarithms.rules': (seed, diff) => {
     const r = rng(seed);
     const a = randInt(r, 2, 9), b = randInt(r, 2, 9);
-    return { prompt: `Simplify: \\( \\log(${a}) + \\log(${b}) \\)`, answer: `log(${a*b})`, steps: [`Product rule: log(a)+log(b)=log(ab)`,`log(${a})+log(${b})=log(${a*b})`], hints: ['Use product rule',`log(a)+log(b)=log(ab)`,`${a}x${b}=${a*b}`], mistakeTypes: ['log'] };
+    return { prompt: `Simplify: \\( \\log(${a}) + \\log(${b}) \\)`, answer: `log(${a*b})`, steps: [`Product rule: \\( \\log(a) + \\log(b) = \\log(ab) \\)`,`\\( \\log(${a}) + \\log(${b}) = \\log(${a*b}) \\)`], hints: ['Use product rule',`\\( \\log(a) + \\log(b) = \\log(ab) \\)`,`\\( ${a} \\times ${b} = ${a*b} \\)`], mistakeTypes: ['log'] };
   },
   'logarithms.equations': (seed, diff) => {
     const r = rng(seed);
     const exp = randInt(r, 1, 4);
-    return { prompt: `Solve: \\( 10^x = ${Math.pow(10,exp)} \\)`, answer: String(exp), steps: [`Take log10 of both sides`,`x = log10(${Math.pow(10,exp)}) = ${exp}`], hints: ['Take log of both sides',`log10(10^x)=x`,`x=${exp}`], mistakeTypes: ['log','algebra'] };
+    return { prompt: `Solve: \\( 10^x = ${Math.pow(10,exp)} \\)`, answer: String(exp), steps: [`Take \\( \\log_{10} \\) of both sides`,`\\( x = \\log_{10}(${Math.pow(10,exp)}) = ${exp} \\)`], hints: ['Take log of both sides',`\\( \\log_{10}(10^x) = x \\)`,`\\( x = ${exp} \\)`], mistakeTypes: ['log','algebra'] };
   },
   'exponentials.growth_decay': (seed, diff) => {
     const r = rng(seed);
@@ -504,7 +504,7 @@ const generators = {
     const rate = choice(r, [0.1,0.2]);
     const t = randInt(r, 1, 3);
     const ansVal = parseFloat((P0*Math.exp(rate*t)).toFixed(2));
-    return { prompt: `P0=${P0}, rate=${rate}/yr. Find P after ${t} years. (P=P0*e^(rt), 2dp)`, answer: String(ansVal), steps: [`P=${P0}*e^(${rate}*${t})`,`=${P0}*e^${rate*t}`,`=${ansVal}`], hints: [`rt=${rate}*${t}=${rate*t}`,`e^${rate*t}=${Math.exp(rate*t).toFixed(4)}`,`*${P0}=${ansVal}`], mistakeTypes: ['formula'] };
+    return { prompt: `\\( P_0 = ${P0} \\), rate \\( = ${rate} \\)/yr. Find \\( P \\) after \\( ${t} \\) years. (\\( P = P_0 e^{rt} \\), 2dp)`, answer: String(ansVal), steps: [`\\( P = ${P0} \\times e^{${rate} \\times ${t}} \\)`,`\\( = ${P0} \\times e^{${rate*t}} \\)`,`\\( = ${ansVal} \\)`], hints: [`\\( rt = ${rate} \\times ${t} = ${rate*t} \\)`,`\\( e^{${rate*t}} = ${Math.exp(rate*t).toFixed(4)} \\)`,`\\( \\times ${P0} = ${ansVal} \\)`], mistakeTypes: ['formula'] };
   },
   'exponentials.half_life': (seed, diff) => {
     const r = rng(seed);
@@ -513,20 +513,20 @@ const generators = {
     const periods = randInt(r, 1, 3);
     const t = hl * periods;
     const ansVal = A0/Math.pow(2,periods);
-    return { prompt: `Half-life ${hl}yrs, start ${A0}g. After ${t}yrs?`, answer: `${ansVal}g`, steps: [`Half-lives: ${t}/${hl}=${periods}`,`Remaining: ${A0}/2^${periods}=${ansVal}g`], hints: [`${t}/${hl}=${periods} half-lives`,`Divide by 2, ${periods} times`,`=${ansVal}g`], mistakeTypes: ['formula'] };
+    return { prompt: `Half-life \\( ${hl} \\) yrs, start \\( ${A0} \\)g. After \\( ${t} \\) yrs?`, answer: `${ansVal}g`, steps: [`Half-lives: \\( \\frac{${t}}{${hl}} = ${periods} \\)`,`Remaining: \\( \\frac{${A0}}{2^{${periods}}} = ${ansVal} \\)g`], hints: [`\\( \\frac{${t}}{${hl}} = ${periods} \\) half-lives`,`Divide by 2, ${periods} times`,`\\( = ${ansVal} \\)g`], mistakeTypes: ['formula'] };
   },
   'trigonometry.sohcahtoa': (seed, diff) => {
     const r = rng(seed);
     const opp = randInt(r, 3, 12), hyp = randInt(r, opp+1, 20);
     const angle = parseFloat((Math.asin(opp/hyp)*180/Math.PI).toFixed(1));
-    return { prompt: `Right triangle: opp=${opp}, hyp=${hyp}. Find angle (1dp)`, answer: `${angle}`, steps: [`sin(theta)=opp/hyp=${opp}/${hyp}`,`theta=arcsin(${(opp/hyp).toFixed(4)})`,`=${angle} degrees`], hints: ['SOH: sin=O/H',`sin=${opp}/${hyp}`,`arcsin to find angle`], mistakeTypes: ['trig'] };
+    return { prompt: `Right triangle: opp \\( = ${opp} \\), hyp \\( = ${hyp} \\). Find angle (1dp)`, answer: `${angle}`, steps: [`\\( \\sin(\\theta) = \\frac{\\text{opp}}{\\text{hyp}} = \\frac{${opp}}{${hyp}} \\)`,`\\( \\theta = \\arcsin(${(opp/hyp).toFixed(4)}) \\)`,`\\( = ${angle}° \\)`], hints: ['SOH: \\( \\sin = \\frac{O}{H} \\)',`\\( \\sin = \\frac{${opp}}{${hyp}} \\)`,`\\( \\arcsin \\) to find angle`], mistakeTypes: ['trig'] };
   },
   'trigonometry.special_angles': (seed, diff) => {
     const r = rng(seed);
     const angles = {30:{sin:'1/2',cos:'sqrt3/2',tan:'1/sqrt3'},45:{sin:'sqrt2/2',cos:'sqrt2/2',tan:'1'},60:{sin:'sqrt3/2',cos:'1/2',tan:'sqrt3'}};
     const ang = choice(r, [30,45,60]);
     const func = choice(r, ['sin','cos','tan']);
-    return { prompt: `What is ${func}(${ang} degrees)? Exact value.`, answer: angles[ang][func], steps: [`Standard special angle`,`${func}(${ang})=${angles[ang][func]}`], hints: ['Memorize 30,45,60 values',`Think about ${func} at ${ang}`,`=${angles[ang][func]}`], mistakeTypes: ['trig'] };
+    return { prompt: `What is \\( \\${func}(${ang}°) \\)? Exact value.`, answer: angles[ang][func], steps: [`Standard special angle`,`\\( \\${func}(${ang}°) = ${angles[ang][func]} \\)`], hints: ['Memorize 30°, 45°, 60° values',`Think about \\( \\${func} \\) at ${ang}°`,`\\( = ${angles[ang][func]} \\)`], mistakeTypes: ['trig'] };
   },
   'trigonometry.sine_cosine_rule': (seed, diff) => {
     const r = rng(seed);
@@ -534,7 +534,7 @@ const generators = {
     const a = randInt(r, 5, 15);
     const sinA = Math.sin(A*Math.PI/180), sinB = Math.sin(B*Math.PI/180);
     const b = parseFloat((a*sinB/sinA).toFixed(2));
-    return { prompt: `Triangle: A=${A}deg, B=${B}deg, a=${a}. Find b (2dp)`, answer: String(b), steps: [`Sine rule: a/sinA=b/sinB`,`b=a*sinB/sinA`,`=${a}*${sinB.toFixed(4)}/${sinA.toFixed(4)}=${b}`], hints: ['Use sine rule',`b=a*sin(B)/sin(A)`,`Calculate sines and divide`], mistakeTypes: ['trig','formula'] };
+    return { prompt: `Triangle: \\( A = ${A}° \\), \\( B = ${B}° \\), \\( a = ${a} \\). Find \\( b \\) (2dp)`, answer: String(b), steps: [`Sine rule: \\( \\frac{a}{\\sin A} = \\frac{b}{\\sin B} \\)`,`\\( b = \\frac{a \\cdot \\sin B}{\\sin A} \\)`,`\\( = \\frac{${a} \\times ${sinB.toFixed(4)}}{${sinA.toFixed(4)}} = ${b} \\)`], hints: ['Use sine rule',`\\( b = \\frac{a \\cdot \\sin B}{\\sin A} \\)`,`Calculate sines and divide`], mistakeTypes: ['trig','formula'] };
   },
   'vectors.add_sub': (seed, diff) => {
     const r = rng(seed);
@@ -543,7 +543,7 @@ const generators = {
     const op = choice(r, ['+', '-']);
     const rx = op==='+' ? ax+bx : ax-bx;
     const ry = op==='+' ? ay+by : ay-by;
-    return { prompt: `Calculate: (${ax},${ay}) ${op} (${bx},${by})`, answer: `(${rx}, ${ry})`, steps: [`x: ${ax}${op}${bx}=${rx}`,`y: ${ay}${op}${by}=${ry}`,`=(${rx},${ry})`], hints: [`${op==='+'?'Add':'Subtract'} components`,`x: ${ax}${op}${bx}=${rx}`,`y: ${ay}${op}${by}=${ry}`], mistakeTypes: ['arithmetic'] };
+    return { prompt: `Calculate: \\( (${ax}, ${ay}) ${op} (${bx}, ${by}) \\)`, answer: `(${rx}, ${ry})`, steps: [`\\( x: ${ax} ${op} ${bx} = ${rx} \\)`,`\\( y: ${ay} ${op} ${by} = ${ry} \\)`,`\\( = (${rx}, ${ry}) \\)`], hints: [`${op==='+'?'Add':'Subtract'} components`,`\\( x: ${ax} ${op} ${bx} = ${rx} \\)`,`\\( y: ${ay} ${op} ${by} = ${ry} \\)`], mistakeTypes: ['arithmetic'] };
   },
   'vectors.components': (seed, diff) => {
     const r = rng(seed);
@@ -551,29 +551,29 @@ const generators = {
     const angle = choice(r, [30, 45, 60]);
     const x = parseFloat((mag*Math.cos(angle*Math.PI/180)).toFixed(2));
     const y = parseFloat((mag*Math.sin(angle*Math.PI/180)).toFixed(2));
-    return { prompt: `Vector: magnitude=${mag}, direction=${angle}deg. Components? (2dp)`, answer: `(${x}, ${y})`, steps: [`x=r*cos(theta)=${mag}*cos(${angle})=${x}`,`y=r*sin(theta)=${mag}*sin(${angle})=${y}`], hints: ['x=r*cos, y=r*sin',`cos(${angle})=${Math.cos(angle*Math.PI/180).toFixed(4)}`,`sin(${angle})=${Math.sin(angle*Math.PI/180).toFixed(4)}`], mistakeTypes: ['trig'] };
+    return { prompt: `Vector: magnitude \\( = ${mag} \\), direction \\( = ${angle}° \\). Components? (2dp)`, answer: `(${x}, ${y})`, steps: [`\\( x = r\\cos\\theta = ${mag}\\cos(${angle}°) = ${x} \\)`,`\\( y = r\\sin\\theta = ${mag}\\sin(${angle}°) = ${y} \\)`], hints: ['\\( x = r\\cos\\theta \\), \\( y = r\\sin\\theta \\)',`\\( \\cos(${angle}°) = ${Math.cos(angle*Math.PI/180).toFixed(4)} \\)`,`\\( \\sin(${angle}°) = ${Math.sin(angle*Math.PI/180).toFixed(4)} \\)`], mistakeTypes: ['trig'] };
   },
   'algebra.collect_terms': (seed, diff) => {
     const r = rng(seed);
     const a = randInt(r, 1, 9), b = randInt(r, 1, 9), c = randInt(r, 1, 9), d = randInt(r, 1, 9);
-    return { prompt: `Simplify: ${a}x + ${b} + ${c}x + ${d}`, answer: `${a+c}x + ${b+d}`, steps: [`x terms: ${a}x+${c}x=${a+c}x`,`Constants: ${b}+${d}=${b+d}`,`=${a+c}x + ${b+d}`], hints: ['Group like terms',`${a}+${c}=${a+c}x`,`${b}+${d}=${b+d}`], mistakeTypes: ['algebra'] };
+    return { prompt: `Simplify: \\( ${a}x + ${b} + ${c}x + ${d} \\)`, answer: `${a+c}x + ${b+d}`, steps: [`\\( x \\) terms: \\( ${a}x + ${c}x = ${a+c}x \\)`,`Constants: \\( ${b} + ${d} = ${b+d} \\)`,`\\( = ${a+c}x + ${b+d} \\)`], hints: ['Group like terms',`\\( ${a} + ${c} = ${a+c} \\) for \\( x \\)`,`\\( ${b} + ${d} = ${b+d} \\)`], mistakeTypes: ['algebra'] };
   },
   'algebra.expand': (seed, diff) => {
     const r = rng(seed);
     const a = randInt(r, 2, 8), b = randInt(r, 1, 9), c = randInt(r, 1, 9);
-    return { prompt: `Expand: ${a}(${b}x + ${c})`, answer: `${a*b}x + ${a*c}`, steps: [`${a}*${b}x=${a*b}x`,`${a}*${c}=${a*c}`,`=${a*b}x + ${a*c}`], hints: ['Multiply each term by factor',`${a}*${b}=${a*b}`,`${a}*${c}=${a*c}`], mistakeTypes: ['algebra'] };
+    return { prompt: `Expand: \\( ${a}(${b}x + ${c}) \\)`, answer: `${a*b}x + ${a*c}`, steps: [`\\( ${a} \\times ${b}x = ${a*b}x \\)`,`\\( ${a} \\times ${c} = ${a*c} \\)`,`\\( = ${a*b}x + ${a*c} \\)`], hints: ['Multiply each term by factor',`\\( ${a} \\times ${b} = ${a*b} \\)`,`\\( ${a} \\times ${c} = ${a*c} \\)`], mistakeTypes: ['algebra'] };
   },
   'algebra.factor': (seed, diff) => {
     const r = rng(seed);
     const gcf = randInt(r, 2, 6);
     let a = randInt(r, 1, 8), b = randInt(r, 1, 8);
     while (gcd(a,b) !== 1) b = randInt(r, 1, 8);
-    return { prompt: `Factorise: ${gcf*a}x + ${gcf*b}`, answer: `${gcf}(${a}x + ${b})`, steps: [`HCF of ${gcf*a} and ${gcf*b} is ${gcf}`,`Factor out: ${gcf}(${a}x + ${b})`], hints: ['Find common factor',`Both divisible by ${gcf}`,`Take out ${gcf}`], mistakeTypes: ['algebra'] };
+    return { prompt: `Factorise: \\( ${gcf*a}x + ${gcf*b} \\)`, answer: `${gcf}(${a}x + ${b})`, steps: [`HCF of \\( ${gcf*a} \\) and \\( ${gcf*b} \\) is \\( ${gcf} \\)`,`Factor out: \\( ${gcf}(${a}x + ${b}) \\)`], hints: ['Find common factor',`Both divisible by \\( ${gcf} \\)`,`Take out \\( ${gcf} \\)`], mistakeTypes: ['algebra'] };
   },
   'algebra.make_subject': (seed, diff) => {
     const r = rng(seed);
     const a = randInt(r, 2, 9), b = randInt(r, 1, 15);
-    return { prompt: `Make x subject: y = ${a}x + ${b}`, answer: `x = (y - ${b}) / ${a}`, steps: [`Subtract ${b}: y-${b}=${a}x`,`Divide by ${a}: x=(y-${b})/${a}`], hints: ['Isolate x term',`Subtract ${b}`,`Divide by ${a}`], mistakeTypes: ['algebra'] };
+    return { prompt: `Make \\( x \\) subject: \\( y = ${a}x + ${b} \\)`, answer: `x = (y - ${b}) / ${a}`, steps: [`Subtract \\( ${b} \\): \\( y - ${b} = ${a}x \\)`,`Divide by \\( ${a} \\): \\( x = \\frac{y - ${b}}{${a}} \\)`], hints: ['Isolate \\( x \\) term',`Subtract \\( ${b} \\)`,`Divide by \\( ${a} \\)`], mistakeTypes: ['algebra'] };
   },
   'simultaneous.substitution': (seed, diff) => {
     const r = rng(seed);
@@ -582,7 +582,7 @@ const generators = {
     const c1 = x + b1*y;
     const a2 = randInt(r, 1, 3), b2 = randInt(r, 1, 3);
     const c2 = a2*x + b2*y;
-    return { prompt: `Solve: x + ${b1}y = ${c1}, ${a2}x + ${b2}y = ${c2}`, answer: `x = ${x}, y = ${y}`, steps: [`From eq1: x = ${c1} - ${b1}y`,`Substitute into eq2`,`Solve: y=${y}, then x=${x}`], hints: ['Express x from eq1',`x = ${c1} - ${b1}y`,`Substitute and solve`], mistakeTypes: ['algebra'] };
+    return { prompt: `Solve: \\( x + ${b1}y = ${c1} \\), \\( ${a2}x + ${b2}y = ${c2} \\)`, answer: `x = ${x}, y = ${y}`, steps: [`From eq1: \\( x = ${c1} - ${b1}y \\)`,`Substitute into eq2`,`Solve: \\( y = ${y} \\), then \\( x = ${x} \\)`], hints: ['Express \\( x \\) from eq1',`\\( x = ${c1} - ${b1}y \\)`,`Substitute and solve`], mistakeTypes: ['algebra'] };
   },
   'simultaneous.elimination': (seed, diff) => {
     const r = rng(seed);
@@ -591,7 +591,7 @@ const generators = {
     let a2 = randInt(r, 1, 4), b2 = randInt(r, 1, 4);
     while (a1*b2 === a2*b1) a2++;
     const c1 = a1*x + b1*y, c2 = a2*x + b2*y;
-    return { prompt: `Solve: ${a1}x + ${b1}y = ${c1}, ${a2}x + ${b2}y = ${c2}`, answer: `x = ${x}, y = ${y}`, steps: [`Multiply to match coefficients`,`Add/subtract to eliminate`,`x=${x}, y=${y}`], hints: ['Make one coefficient same',`Add or subtract equations`,`Solve for remaining`], mistakeTypes: ['algebra'] };
+    return { prompt: `Solve: \\( ${a1}x + ${b1}y = ${c1} \\), \\( ${a2}x + ${b2}y = ${c2} \\)`, answer: `x = ${x}, y = ${y}`, steps: [`Multiply to match coefficients`,`Add/subtract to eliminate`,`\\( x = ${x} \\), \\( y = ${y} \\)`], hints: ['Make one coefficient same',`Add or subtract equations`,`Solve for remaining`], mistakeTypes: ['algebra'] };
   },
   'quadratics.factorisation': (seed, diff) => {
     const r = rng(seed);
@@ -600,7 +600,7 @@ const generators = {
     const b = -(p+q), c = p*q;
     const bStr = b >= 0 ? `+ ${b}` : `- ${Math.abs(b)}`;
     const cStr = c >= 0 ? `+ ${c}` : `- ${Math.abs(c)}`;
-    return { prompt: `Solve: x^2 ${bStr}x ${cStr} = 0`, answer: `x = ${Math.min(p,q)} or x = ${Math.max(p,q)}`, steps: [`Find numbers with product ${c} and sum ${b}`,`Those are ${-p} and ${-q}`,`x=${p} or x=${q}`], hints: ['Product = c, sum = b',`${-p} and ${-q}`,`Solutions: ${p}, ${q}`], mistakeTypes: ['algebra'] };
+    return { prompt: `Solve by factorisation: \\( x^2 ${bStr}x ${cStr} = 0 \\)`, answer: `x = ${Math.min(p,q)} or x = ${Math.max(p,q)}`, steps: [`Find numbers with product \\( ${c} \\) and sum \\( ${b} \\)`,`Those are \\( ${-p} \\) and \\( ${-q} \\)`,`\\( x = ${p} \\) or \\( x = ${q} \\)`], hints: ['Product = c, sum = b',`\\( ${-p} \\) and \\( ${-q} \\)`,`Solutions: \\( ${p}, ${q} \\)`], mistakeTypes: ['algebra'] };
   },
   'quadratics.formula': (seed, diff) => {
     const r = rng(seed);
@@ -608,21 +608,21 @@ const generators = {
     if (p === 0) p = 1; if (q === 0) q = -1;
     const b = -(p+q), c = p*q;
     const disc = b*b - 4*c;
-    return { prompt: `Use formula: x^2 ${b>=0?'+':'-'} ${Math.abs(b)}x ${c>=0?'+':'-'} ${Math.abs(c)} = 0`, answer: `x = ${Math.min(p,q)} or x = ${Math.max(p,q)}`, steps: [`a=1, b=${b}, c=${c}`,`Discriminant = ${disc}`,`x = (-${b} +/- sqrt(${disc}))/2`,`x=${p} or x=${q}`], hints: ['x = (-b +/- sqrt(b^2-4ac))/2a',`Discriminant = ${disc}`,`sqrt(${disc}) = ${Math.sqrt(disc)}`], mistakeTypes: ['algebra'] };
+    return { prompt: `Use the quadratic formula to solve: \\( x^2 ${b>=0?'+':'-'} ${Math.abs(b)}x ${c>=0?'+':'-'} ${Math.abs(c)} = 0 \\)`, answer: `x = ${Math.min(p,q)} or x = ${Math.max(p,q)}`, steps: [`\\( a = 1, b = ${b}, c = ${c} \\)`,`Discriminant \\( = ${disc} \\)`,`\\( x = \\frac{${-b} \\pm \\sqrt{${disc}}}{2} \\)`,`\\( x = ${p} \\) or \\( x = ${q} \\)`], hints: ['\\( x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a} \\)',`Discriminant \\( = ${disc} \\)`,`\\( \\sqrt{${disc}} = ${Math.sqrt(disc)} \\)`], mistakeTypes: ['algebra'] };
   },
   'differentiation.power_rule': (seed, diff) => {
     const r = rng(seed);
     const a = randInt(r, 1, 8), n = randInt(r, 2, 6);
     const newCoeff = a*n, newPow = n-1;
     const ans = newPow === 1 ? `${newCoeff}x` : newPow === 0 ? `${newCoeff}` : `${newCoeff}x^${newPow}`;
-    return { prompt: `Differentiate: y = ${a}x^${n}`, answer: ans, steps: [`Power rule: bring down power, reduce by 1`,`${a}*${n}=${newCoeff}`,`Power: ${n}-1=${newPow}`], hints: ['Multiply by power',`${a}*${n}=${newCoeff}`,`New power = ${newPow}`], mistakeTypes: ['algebra'] };
+    return { prompt: `Differentiate: \\( y = ${a}x^{${n}} \\)`, answer: ans, steps: [`Power rule: bring down power, reduce by 1`,`\\( ${a} \\times ${n} = ${newCoeff} \\)`,`Power: \\( ${n} - 1 = ${newPow} \\)`], hints: ['Multiply by power',`\\( ${a} \\times ${n} = ${newCoeff} \\)`,`New power \\( = ${newPow} \\)`], mistakeTypes: ['algebra'] };
   },
   'differentiation.constant_multiple': (seed, diff) => {
     const r = rng(seed);
     const k = randInt(r, 2, 5), a = randInt(r, 1, 4), n = randInt(r, 2, 4);
     const coeff = k*a*n, newPow = n-1;
     const ans = newPow === 1 ? `${coeff}x` : `${coeff}x^${newPow}`;
-    return { prompt: `Differentiate: y = ${k}*${a}x^${n}`, answer: ans, steps: [`Simplify: ${k*a}x^${n}`,`Differentiate: ${k*a}*${n}x^${n-1}`,`= ${coeff}x^${newPow}`], hints: ['Constants multiply through',`${k}*${a}=${k*a}`,`Then power rule`], mistakeTypes: ['algebra'] };
+    return { prompt: `Differentiate: \\( y = ${k} \\cdot ${a}x^{${n}} \\)`, answer: ans, steps: [`Simplify: \\( ${k*a}x^{${n}} \\)`,`Differentiate: \\( ${k*a} \\times ${n}x^{${n-1}} \\)`,`\\( = ${coeff}x^{${newPow}} \\)`], hints: ['Constants multiply through',`\\( ${k} \\times ${a} = ${k*a} \\)`,`Then power rule`], mistakeTypes: ['algebra'] };
   },
   'differentiation.sum_rule': (seed, diff) => {
     const r = rng(seed);
@@ -631,7 +631,7 @@ const generators = {
     const c = randInt(r, 1, 10);
     const t1 = n1-1===1 ? `${a1*n1}x` : `${a1*n1}x^${n1-1}`;
     const t2 = n2-1===0 ? `${a2*n2}` : n2-1===1 ? `${a2*n2}x` : `${a2*n2}x^${n2-1}`;
-    return { prompt: `Differentiate: y = ${a1}x^${n1} + ${a2}x^${n2} + ${c}`, answer: `${t1} + ${t2}`, steps: [`d/dx[${a1}x^${n1}] = ${a1*n1}x^${n1-1}`,`d/dx[${a2}x^${n2}] = ${a2*n2}x^${n2-1}`,`d/dx[${c}] = 0`], hints: ['Differentiate each term',`${a1}*${n1}=${a1*n1}`,`Constants -> 0`], mistakeTypes: ['algebra'] };
+    return { prompt: `Differentiate: \\( y = ${a1}x^{${n1}} + ${a2}x^{${n2}} + ${c} \\)`, answer: `${t1} + ${t2}`, steps: [`\\( \\frac{d}{dx}[${a1}x^{${n1}}] = ${a1*n1}x^{${n1-1}} \\)`,`\\( \\frac{d}{dx}[${a2}x^{${n2}}] = ${a2*n2}x^{${n2-1}} \\)`,`\\( \\frac{d}{dx}[${c}] = 0 \\)`], hints: ['Differentiate each term',`\\( ${a1} \\times ${n1} = ${a1*n1} \\)`,`Constants \\( \\to 0 \\)`], mistakeTypes: ['algebra'] };
   },
   'stationary_points.find': (seed, diff) => {
     const r = rng(seed);
@@ -640,13 +640,13 @@ const generators = {
     const c = randInt(r, -10, 10);
     const xStat = -b/(2*a);
     const yStat = a*xStat*xStat + b*xStat + c;
-    return { prompt: `Find stationary point: y = x^2 ${b>=0?'+':'-'} ${Math.abs(b)}x ${c>=0?'+':'-'} ${Math.abs(c)}`, answer: `x = ${xStat}, y = ${yStat}`, steps: [`dy/dx = 2x ${b>=0?'+':'-'} ${Math.abs(b)}`,`Set = 0: x = ${xStat}`,`y = ${yStat}`], hints: ['Differentiate',`Set dy/dx = 0`,`Find y by substituting x`], mistakeTypes: ['algebra'] };
+    return { prompt: `Find stationary point: \\( y = x^2 ${b>=0?'+':'-'} ${Math.abs(b)}x ${c>=0?'+':'-'} ${Math.abs(c)} \\)`, answer: `x = ${xStat}, y = ${yStat}`, steps: [`\\( \\frac{dy}{dx} = 2x ${b>=0?'+':'-'} ${Math.abs(b)} \\)`,`Set \\( = 0 \\): \\( x = ${xStat} \\)`,`\\( y = ${yStat} \\)`], hints: ['Differentiate',`Set \\( \\frac{dy}{dx} = 0 \\)`,`Find \\( y \\) by substituting \\( x \\)`], mistakeTypes: ['algebra'] };
   },
   'stationary_points.classify': (seed, diff) => {
     const r = rng(seed);
     const a = choice(r, [1, -1]);
     const classification = a > 0 ? 'minimum' : 'maximum';
-    return { prompt: `For y = ${a===1?'':'- '}x^2 + 3x + 2, classify the stationary point`, answer: classification, steps: [`dy/dx = ${2*a}x + 3`,`d2y/dx2 = ${2*a}`,`${2*a} ${a>0?'>':'<'} 0, so ${classification}`], hints: ['Find second derivative',`d2y/dx2 = ${2*a}`,`Positive=min, Negative=max`], mistakeTypes: ['algebra'] };
+    return { prompt: `For \\( y = ${a===1?'':'- '}x^2 + 3x + 2 \\), classify the stationary point`, answer: classification, steps: [`\\( \\frac{dy}{dx} = ${2*a}x + 3 \\)`,`\\( \\frac{d^2y}{dx^2} = ${2*a} \\)`,`\\( ${2*a} ${a>0?'>':'<'} 0 \\), so ${classification}`], hints: ['Find second derivative',`\\( \\frac{d^2y}{dx^2} = ${2*a} \\)`,`Positive = min, Negative = max`], mistakeTypes: ['algebra'] };
   },
   'integration.power_rule': (seed, diff) => {
     const r = rng(seed);
@@ -654,7 +654,7 @@ const generators = {
     const newPow = n+1;
     const sf = simplifyFrac(a, newPow);
     const coeffStr = sf.den === 1 ? String(sf.num) : `${sf.num}/${sf.den}`;
-    return { prompt: `Integrate: ${a}x^${n} dx`, answer: `${coeffStr}x^${newPow} + C`, steps: [`Add 1 to power: ${newPow}`,`Divide by new power: ${a}/${newPow}`,`= ${coeffStr}x^${newPow} + C`], hints: ['Add 1 to power',`New power = ${newPow}`,`Divide coefficient by ${newPow}`], mistakeTypes: ['algebra'] };
+    return { prompt: `Integrate: \\( \\int ${a}x^{${n}} \\, dx \\)`, answer: `${coeffStr}x^${newPow} + C`, steps: [`Add 1 to power: \\( ${newPow} \\)`,`Divide by new power: \\( \\frac{${a}}{${newPow}} \\)`,`\\( = ${coeffStr}x^{${newPow}} + C \\)`], hints: ['Add 1 to power',`New power \\( = ${newPow} \\)`,`Divide coefficient by \\( ${newPow} \\)`], mistakeTypes: ['algebra'] };
   },
   'integration.constant_multiple': (seed, diff) => {
     const r = rng(seed);
@@ -662,7 +662,7 @@ const generators = {
     const newPow = n+1;
     const sf = simplifyFrac(k*a, newPow);
     const coeffStr = sf.den === 1 ? String(sf.num) : `${sf.num}/${sf.den}`;
-    return { prompt: `Integrate: ${k}*${a}x^${n} dx`, answer: `${coeffStr}x^${newPow} + C`, steps: [`Simplify: ${k*a}x^${n}`,`Integrate: ${k*a}/${newPow}x^${newPow}`,`= ${coeffStr}x^${newPow} + C`], hints: [`${k}*${a}=${k*a}`,`New power = ${newPow}`,`Divide by ${newPow}`], mistakeTypes: ['algebra'] };
+    return { prompt: `Integrate: \\( \\int ${k} \\cdot ${a}x^{${n}} \\, dx \\)`, answer: `${coeffStr}x^${newPow} + C`, steps: [`Simplify: \\( ${k*a}x^{${n}} \\)`,`Integrate: \\( \\frac{${k*a}}{${newPow}}x^{${newPow}} \\)`,`\\( = ${coeffStr}x^{${newPow}} + C \\)`], hints: [`\\( ${k} \\times ${a} = ${k*a} \\)`,`New power \\( = ${newPow} \\)`,`Divide by \\( ${newPow} \\)`], mistakeTypes: ['algebra'] };
   },
   'integration.sum_rule': (seed, diff) => {
     const r = rng(seed);
@@ -671,7 +671,7 @@ const generators = {
     const sf1 = simplifyFrac(a1, n1+1), sf2 = simplifyFrac(a2, n2+1);
     const c1 = sf1.den===1 ? String(sf1.num) : `${sf1.num}/${sf1.den}`;
     const c2 = sf2.den===1 ? String(sf2.num) : `${sf2.num}/${sf2.den}`;
-    return { prompt: `Integrate: (${a1}x^${n1} + ${a2}x^${n2}) dx`, answer: `${c1}x^${n1+1} + ${c2}x^${n2+1} + C`, steps: [`int ${a1}x^${n1} = ${c1}x^${n1+1}`,`int ${a2}x^${n2} = ${c2}x^${n2+1}`,`Add C`], hints: ['Integrate each term',`Powers become ${n1+1} and ${n2+1}`,`Don't forget + C`], mistakeTypes: ['algebra'] };
+    return { prompt: `Integrate: \\( \\int (${a1}x^{${n1}} + ${a2}x^{${n2}}) \\, dx \\)`, answer: `${c1}x^${n1+1} + ${c2}x^${n2+1} + C`, steps: [`\\( \\int ${a1}x^{${n1}} = ${c1}x^{${n1+1}} \\)`,`\\( \\int ${a2}x^{${n2}} = ${c2}x^{${n2+1}} \\)`,`Add \\( C \\)`], hints: ['Integrate each term',`Powers become \\( ${n1+1} \\) and \\( ${n2+1} \\)`,`Don't forget \\( + C \\)`], mistakeTypes: ['algebra'] };
   },
   'units.si': (seed, diff) => {
     const r = rng(seed);
@@ -691,7 +691,7 @@ const generators = {
     const fromP = {name:'milli',sym:'m',exp:-3};
     const toP = {name:'micro',sym:'u',exp:-6};
     const result = val * Math.pow(10, fromP.exp - toP.exp);
-    return { prompt: `Convert ${val} mV to uV`, answer: `${result} uV`, steps: [`milli = 10^-3, micro = 10^-6`,`${val} mV = ${val} x 10^-3 V`,`= ${result} x 10^-6 V = ${result} uV`], hints: ['Convert via base unit',`mV to V to uV`,`x1000`], mistakeTypes: ['units'] };
+    return { prompt: `Convert \\( ${val} \\) mV to μV`, answer: `${result} μV`, steps: [`\\( \\text{milli} = 10^{-3} \\), \\( \\text{micro} = 10^{-6} \\)`,`\\( ${val} \\text{ mV} = ${val} \\times 10^{-3} \\text{ V} \\)`,`\\( = ${result} \\times 10^{-6} \\text{ V} = ${result} \\) μV`], hints: ['Convert via base unit',`mV → V → μV`,`\\( \\times 1000 \\)`], mistakeTypes: ['units'] };
   }
 };
 
