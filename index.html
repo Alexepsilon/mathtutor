@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#1a1a2e">
-<title>Math Tutor — T192/T193</title>
+<title>Math Tutor - T192/T193</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -60,7 +60,26 @@ input:focus, select:focus { outline: none; border-color: var(--accent); }
 }
 .topic-item:hover { background: var(--card); }
 .topic-item.mastered { border-left: 4px solid var(--success); }
-.topic-item.locked { opacity: 0.5; cursor: not-allowed; }
+.topic-header {
+  background: var(--card); border-radius: 8px; padding: 12px;
+  margin-bottom: 4px; cursor: pointer; transition: background 0.2s;
+  border: 1px solid var(--border);
+}
+.topic-header:hover { background: var(--bg2); }
+.topic-header.expanded { border-bottom-left-radius: 0; border-bottom-right-radius: 0; margin-bottom: 0; }
+.subtopic-list {
+  background: var(--bg2); border: 1px solid var(--border); border-top: none;
+  border-radius: 0 0 8px 8px; margin-bottom: 8px; overflow: hidden;
+}
+.subtopic-item {
+  padding: 10px 12px 10px 32px; display: flex; justify-content: space-between; align-items: center;
+  border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.2s;
+}
+.subtopic-item:last-child { border-bottom: none; }
+.subtopic-item:hover { background: var(--card); }
+.subtopic-item.mastered { border-left: 4px solid var(--success); padding-left: 28px; }
+.expand-icon { transition: transform 0.2s; display: inline-block; margin-right: 8px; }
+.expand-icon.expanded { transform: rotate(90deg); }
 .hidden { display: none !important; }
 .hint-box { background: var(--bg2); padding: 12px; border-radius: 8px; margin: 8px 0; display: none; }
 .hint-box.show { display: block; }
@@ -81,6 +100,10 @@ input:focus, select:focus { outline: none; border-color: var(--accent); }
 .badge {
   background: var(--accent); color: #fff; padding: 2px 8px; border-radius: 10px;
   font-size: 0.75rem; margin-left: 8px;
+}
+.badge-sm {
+  background: var(--border); color: var(--text2); padding: 2px 6px; border-radius: 8px;
+  font-size: 0.7rem; margin-left: 6px;
 }
 .celebration {
   background: linear-gradient(135deg, var(--success), var(--accent));
@@ -107,6 +130,7 @@ input:focus, select:focus { outline: none; border-color: var(--accent); }
 }
 .checkbox-item:hover { background: var(--card); }
 .checkbox-item input { width: 18px; height: 18px; accent-color: var(--accent); }
+.checkbox-item.subtopic { padding-left: 24px; font-size: 0.9rem; }
 .stat-card {
   display: flex; justify-content: space-between; align-items: center;
   padding: 12px; background: var(--bg2); border-radius: 8px; margin-bottom: 8px;
@@ -118,1188 +142,620 @@ input:focus, select:focus { outline: none; border-color: var(--accent); }
 }
 .flex-row { display: flex; gap: 8px; flex-wrap: wrap; }
 .flex-grow { flex: 1; }
-@media (max-width: 480px) {
-  .checkbox-grid { grid-template-columns: 1fr; }
+.parent-progress { display: flex; gap: 2px; margin-top: 4px; }
+.parent-progress-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--border);
 }
+.parent-progress-dot.mastered { background: var(--success); }
+.parent-progress-dot.started { background: var(--warning); }
+@media (max-width: 480px) { .checkbox-grid { grid-template-columns: 1fr; } }
 </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
 </head>
 <body>
-
 <div id="app"></div>
-
 <nav class="nav-bar">
-  <button class="nav-btn active" data-page="topics" onclick="showPage('topics')"><span>📚</span>Topics</button>
-  <button class="nav-btn" data-page="review" onclick="showPage('review')"><span>🔄</span>Review<span id="review-badge"></span></button>
-  <button class="nav-btn" data-page="test" onclick="showPage('test')"><span>📝</span>Test</button>
-  <button class="nav-btn" data-page="stats" onclick="showPage('stats')"><span>📊</span>Stats</button>
+  <button class="nav-btn active" data-page="topics" onclick="showPage('topics')"><span>&#128218;</span>Topics</button>
+  <button class="nav-btn" data-page="review" onclick="showPage('review')"><span>&#128260;</span>Review<span id="review-badge"></span></button>
+  <button class="nav-btn" data-page="test" onclick="showPage('test')"><span>&#128221;</span>Test</button>
+  <button class="nav-btn" data-page="stats" onclick="showPage('stats')"><span>&#128202;</span>Stats</button>
 </nav>
-
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
 <script>
-// ============================================================================
-// CONSTANTS & TOPIC DATA
-// ============================================================================
-
 const TOPICS = [
-  { id: 'bidmas', name: 'BIDMAS', icon: '🔢' },
-  { id: 'fractions', name: 'Fractions', icon: '➗' },
-  { id: 'percentages', name: 'Percentages', icon: '💯' },
-  { id: 'powers', name: 'Powers & Indices', icon: '📈' },
-  { id: 'logarithms', name: 'Logarithms', icon: '📐' },
-  { id: 'exponentials', name: 'Exponentials', icon: '🚀' },
-  { id: 'trigonometry', name: 'Trigonometry', icon: '📐' },
-  { id: 'vectors', name: 'Vectors', icon: '➡️' },
-  { id: 'algebra', name: 'Algebra', icon: '🔤' },
-  { id: 'simultaneous', name: 'Simultaneous Equations', icon: '⚖️' },
-  { id: 'quadratics', name: 'Quadratics', icon: '📊' },
-  { id: 'differentiation', name: 'Differentiation', icon: '📉' },
-  { id: 'stationary_points', name: 'Stationary Points', icon: '🎯' },
-  { id: 'integration', name: 'Integration', icon: '∫' },
-  { id: 'units', name: 'Units & Prefixes', icon: '📏' },
+  { id: 'bidmas', name: 'BIDMAS', icon: '&#128290;', children: [] },
+  { id: 'fractions', name: 'Fractions', icon: '&#10135;', children: [
+    { id: 'fractions.simplify', name: 'Simplifying Fractions' },
+    { id: 'fractions.add_sub', name: 'Adding & Subtracting' },
+    { id: 'fractions.mul_div', name: 'Multiplying & Dividing' },
+    { id: 'fractions.of_quantity', name: 'Fraction of a Quantity' }
+  ]},
+  { id: 'percentages', name: 'Percentages', icon: '&#128175;', children: [
+    { id: 'percentages.of_quantity', name: 'Percentage of a Quantity' },
+    { id: 'percentages.increase_decrease', name: 'Increase & Decrease' },
+    { id: 'percentages.scale_factors', name: 'Scale Factors' }
+  ]},
+  { id: 'powers', name: 'Powers & Indices', icon: '&#128200;', children: [
+    { id: 'powers.laws', name: 'Laws of Indices' },
+    { id: 'powers.negative_fractional', name: 'Negative & Fractional' }
+  ]},
+  { id: 'logarithms', name: 'Logarithms', icon: '&#128208;', children: [
+    { id: 'logarithms.basics', name: 'Log Base 10 & Natural Log' },
+    { id: 'logarithms.rules', name: 'Log Rules' },
+    { id: 'logarithms.equations', name: 'Solving Log Equations' }
+  ]},
+  { id: 'exponentials', name: 'Exponentials', icon: '&#128640;', children: [
+    { id: 'exponentials.growth_decay', name: 'Growth & Decay' },
+    { id: 'exponentials.half_life', name: 'Half-Life' }
+  ]},
+  { id: 'trigonometry', name: 'Trigonometry', icon: '&#128208;', children: [
+    { id: 'trigonometry.sohcahtoa', name: 'SOHCAHTOA' },
+    { id: 'trigonometry.special_angles', name: 'Special Angles' },
+    { id: 'trigonometry.sine_cosine_rule', name: 'Sine & Cosine Rule' }
+  ]},
+  { id: 'vectors', name: 'Vectors', icon: '&#10145;', children: [
+    { id: 'vectors.add_sub', name: 'Adding & Subtracting' },
+    { id: 'vectors.components', name: 'Vector Components' }
+  ]},
+  { id: 'algebra', name: 'Algebra', icon: '&#128292;', children: [
+    { id: 'algebra.collect_terms', name: 'Collecting Like Terms' },
+    { id: 'algebra.expand', name: 'Expanding Brackets' },
+    { id: 'algebra.factor', name: 'Factorising' },
+    { id: 'algebra.make_subject', name: 'Make the Subject' }
+  ]},
+  { id: 'simultaneous', name: 'Simultaneous Equations', icon: '&#9878;', children: [
+    { id: 'simultaneous.substitution', name: 'Substitution Method' },
+    { id: 'simultaneous.elimination', name: 'Elimination Method' }
+  ]},
+  { id: 'quadratics', name: 'Quadratics', icon: '&#128200;', children: [
+    { id: 'quadratics.factorisation', name: 'Solving by Factorisation' },
+    { id: 'quadratics.formula', name: 'Quadratic Formula' }
+  ]},
+  { id: 'differentiation', name: 'Differentiation', icon: '&#128201;', children: [
+    { id: 'differentiation.power_rule', name: 'Power Rule' },
+    { id: 'differentiation.constant_multiple', name: 'Constant Multiple Rule' },
+    { id: 'differentiation.sum_rule', name: 'Sum Rule' }
+  ]},
+  { id: 'stationary_points', name: 'Stationary Points', icon: '&#127919;', children: [
+    { id: 'stationary_points.find', name: 'Finding Stationary Points' },
+    { id: 'stationary_points.classify', name: 'Classifying Stationary Points' }
+  ]},
+  { id: 'integration', name: 'Integration', icon: '&#8747;', children: [
+    { id: 'integration.power_rule', name: 'Power Rule' },
+    { id: 'integration.constant_multiple', name: 'Constant Multiple Rule' },
+    { id: 'integration.sum_rule', name: 'Sum Rule' }
+  ]},
+  { id: 'units', name: 'Units & Prefixes', icon: '&#128207;', children: [
+    { id: 'units.si', name: 'SI Units' },
+    { id: 'units.prefixes', name: 'Engineering Prefixes' },
+    { id: 'units.conversions', name: 'Unit Conversions' }
+  ]}
 ];
 
+function getAllSubtopics() {
+  const result = [];
+  TOPICS.forEach(t => {
+    if (t.children && t.children.length > 0) {
+      t.children.forEach(c => result.push({ ...c, parentId: t.id, parentName: t.name, parentIcon: t.icon }));
+    } else {
+      result.push({ id: t.id, name: t.name, parentId: null, parentName: null, parentIcon: t.icon });
+    }
+  });
+  return result;
+}
+const ALL_SUBTOPICS = getAllSubtopics();
+
 const TOPIC_EXPLANATIONS = {
-  "bidmas": "BIDMAS stands for Brackets, Indices, Division, Multiplication, Addition, Subtraction. This is the order you must follow when evaluating expressions. Multiplication and division are equal priority (left to right), as are addition and subtraction.",
-  "fractions": "Fractions represent parts of a whole. The numerator (top) shows how many parts you have; the denominator (bottom) shows total equal parts.",
-  "percentages": "A percentage is a fraction out of 100. To convert between percentages and decimals, divide or multiply by 100.",
-  "powers": "Powers (indices) provide shorthand for repeated multiplication. The base is the number being multiplied; the exponent says how many times.",
-  "logarithms": "A logarithm answers: what power do I raise the base to, to get this number? \\( \\log_b(x) = y \\) means \\( b^y = x \\).",
-  "exponentials": "Exponential functions have the form \\( y = a \\cdot e^{kt} \\). They model growth (\\( k > 0 \\)) and decay (\\( k < 0 \\)) in science and engineering.",
-  "trigonometry": "Trigonometry relates angles to side lengths in triangles. The three main ratios are sine, cosine, and tangent.",
-  "vectors": "Vectors have both magnitude and direction. They are represented as components \\( (x, y) \\) or with magnitude and angle.",
-  "algebra": "Algebra lets you manipulate expressions and solve equations using variables.",
-  "simultaneous": "Simultaneous equations are two or more equations that must be true at the same time.",
-  "quadratics": "Quadratic equations have the form \\( ax^2 + bx + c = 0 \\). They can have 0, 1, or 2 real solutions.",
-  "differentiation": "Differentiation finds the rate of change (gradient) of a function. If \\( y = f(x) \\), \\( \\frac{dy}{dx} \\) gives the gradient at any point.",
-  "stationary_points": "Stationary points occur where \\( \\frac{dy}{dx} = 0 \\). They can be maxima, minima, or points of inflection.",
-  "integration": "Integration is the reverse of differentiation. It finds the area under a curve.",
-  "units": "Engineering uses SI units with standard prefixes to represent very large or very small quantities."
+  "bidmas": "BIDMAS: Brackets, Indices, Division, Multiplication, Addition, Subtraction - the order of operations.",
+  "fractions": "Fractions represent parts of a whole.",
+  "fractions.simplify": "To simplify, divide both numerator and denominator by their GCD.",
+  "fractions.add_sub": "Find a common denominator, then add/subtract numerators.",
+  "fractions.mul_div": "Multiply tops and bottoms. To divide, multiply by reciprocal.",
+  "fractions.of_quantity": "Divide by denominator, multiply by numerator.",
+  "percentages": "A percentage is a fraction out of 100.",
+  "percentages.of_quantity": "Multiply by x/100 to find x% of a quantity.",
+  "percentages.increase_decrease": "Multiply by (1+rate) for increase, (1-rate) for decrease.",
+  "percentages.scale_factors": "Scale factor = 1 + percentage/100 for increase.",
+  "powers": "Powers are shorthand for repeated multiplication.",
+  "powers.laws": "a^m x a^n = a^(m+n), a^m / a^n = a^(m-n), (a^m)^n = a^(mn).",
+  "powers.negative_fractional": "a^(-n) = 1/a^n. a^(1/n) = nth root of a.",
+  "logarithms": "log_b(x) = y means b^y = x.",
+  "logarithms.basics": "log10(x) is power of 10, ln(x) is power of e.",
+  "logarithms.rules": "log(ab)=log(a)+log(b), log(a/b)=log(a)-log(b), log(a^n)=n*log(a).",
+  "logarithms.equations": "Take logs of both sides to solve exponential equations.",
+  "exponentials": "y = ae^(kt) models growth (k>0) and decay (k<0).",
+  "exponentials.growth_decay": "P = P0*e^(kt) for continuous growth/decay.",
+  "exponentials.half_life": "After n half-lives, remaining = original x (1/2)^n.",
+  "trigonometry": "Trig relates angles to side lengths in triangles.",
+  "trigonometry.sohcahtoa": "SOH: sin=O/H, CAH: cos=A/H, TOA: tan=O/A.",
+  "trigonometry.special_angles": "Know exact values for 30, 45, 60 degrees.",
+  "trigonometry.sine_cosine_rule": "Sine rule: a/sinA = b/sinB. Cosine rule: a^2 = b^2 + c^2 - 2bc*cosA.",
+  "vectors": "Vectors have magnitude and direction.",
+  "vectors.add_sub": "Add vectors by adding components.",
+  "vectors.components": "x = r*cos(theta), y = r*sin(theta).",
+  "algebra": "Algebra manipulates expressions with variables.",
+  "algebra.collect_terms": "Combine like terms: 3x + 2x = 5x.",
+  "algebra.expand": "a(b+c) = ab + ac.",
+  "algebra.factor": "Find common factors and write as product.",
+  "algebra.make_subject": "Rearrange to isolate the required variable.",
+  "simultaneous": "Two equations that must be true simultaneously.",
+  "simultaneous.substitution": "Express one variable in terms of the other.",
+  "simultaneous.elimination": "Add/subtract equations to eliminate a variable.",
+  "quadratics": "ax^2 + bx + c = 0 can have 0, 1, or 2 solutions.",
+  "quadratics.factorisation": "If it factors, set each bracket to zero.",
+  "quadratics.formula": "x = (-b +/- sqrt(b^2-4ac)) / 2a.",
+  "differentiation": "dy/dx gives the gradient at any point.",
+  "differentiation.power_rule": "d/dx[ax^n] = anx^(n-1).",
+  "differentiation.constant_multiple": "d/dx[kf(x)] = k*f'(x).",
+  "differentiation.sum_rule": "d/dx[f+g] = f'+g'.",
+  "stationary_points": "Where dy/dx = 0.",
+  "stationary_points.find": "Set dy/dx = 0, solve for x.",
+  "stationary_points.classify": "d2y/dx2 > 0 = min, < 0 = max.",
+  "integration": "Reverse of differentiation.",
+  "integration.power_rule": "integral ax^n dx = ax^(n+1)/(n+1) + C.",
+  "integration.constant_multiple": "integral kf(x)dx = k*integral f(x)dx.",
+  "integration.sum_rule": "integral [f+g]dx = integral f dx + integral g dx.",
+  "units": "SI units with prefixes for large/small quantities.",
+  "units.si": "metre, kilogram, second, ampere, kelvin, mole, candela.",
+  "units.prefixes": "pico 10^-12, nano 10^-9, micro 10^-6, milli 10^-3, kilo 10^3, mega 10^6, giga 10^9.",
+  "units.conversions": "Convert by multiplying/dividing by powers of 10."
 };
 
 const MASTERY_REQUIRED = 10;
 const MASTERY_ACCURACY = 80;
 
-// ============================================================================
-// STATE
-// ============================================================================
-
 let state = {
-  page: 'topics',
-  currentTopic: null,
-  currentQuestion: null,
-  difficulty: 1,
-  showResult: false,
-  lastAnswer: '',
-  wasCorrect: false,
-  testQuestions: [],
-  testAnswers: [],
-  testResults: null,
-  showExplanation: false,
+  page: 'topics', currentTopic: null, currentQuestion: null, difficulty: 1,
+  showResult: false, lastAnswer: '', wasCorrect: false,
+  testQuestions: [], testAnswers: [], testResults: null, testCurrentIndex: 0,
+  showExplanation: false, expandedTopics: {}
 };
 
-// ============================================================================
-// LOCAL STORAGE
-// ============================================================================
-
-function loadProgress() {
-  try {
-    return JSON.parse(localStorage.getItem('mathtutor_progress')) || {};
-  } catch { return {}; }
-}
-
-function saveProgress(p) {
-  localStorage.setItem('mathtutor_progress', JSON.stringify(p));
-}
-
-function loadSRS() {
-  try {
-    return JSON.parse(localStorage.getItem('mathtutor_srs')) || {};
-  } catch { return {}; }
-}
-
-function saveSRS(s) {
-  localStorage.setItem('mathtutor_srs', JSON.stringify(s));
-}
-
-function loadAttempts() {
-  try {
-    return JSON.parse(localStorage.getItem('mathtutor_attempts')) || [];
-  } catch { return []; }
-}
-
-function saveAttempts(a) {
-  // Keep last 500 attempts
-  localStorage.setItem('mathtutor_attempts', JSON.stringify(a.slice(-500)));
-}
-
-function loadMistakes() {
-  try {
-    return JSON.parse(localStorage.getItem('mathtutor_mistakes')) || {};
-  } catch { return {}; }
-}
-
-function saveMistakes(m) {
-  localStorage.setItem('mathtutor_mistakes', JSON.stringify(m));
-}
-
-// ============================================================================
-// MASTERY & SRS
-// ============================================================================
+function loadProgress() { try { return JSON.parse(localStorage.getItem('mathtutor_progress')) || {}; } catch { return {}; } }
+function saveProgress(p) { localStorage.setItem('mathtutor_progress', JSON.stringify(p)); }
+function loadSRS() { try { return JSON.parse(localStorage.getItem('mathtutor_srs')) || {}; } catch { return {}; } }
+function saveSRS(s) { localStorage.setItem('mathtutor_srs', JSON.stringify(s)); }
+function loadAttempts() { try { return JSON.parse(localStorage.getItem('mathtutor_attempts')) || []; } catch { return []; } }
+function saveAttempts(a) { localStorage.setItem('mathtutor_attempts', JSON.stringify(a.slice(-500))); }
+function loadMistakes() { try { return JSON.parse(localStorage.getItem('mathtutor_mistakes')) || {}; } catch { return {}; } }
+function saveMistakes(m) { localStorage.setItem('mathtutor_mistakes', JSON.stringify(m)); }
+function loadExpandedState() { try { return JSON.parse(localStorage.getItem('mathtutor_expanded')) || {}; } catch { return {}; } }
+function saveExpandedState(e) { localStorage.setItem('mathtutor_expanded', JSON.stringify(e)); }
 
 function getTopicMastery(topicId) {
   const p = loadProgress();
   const data = p[topicId] || { correct: 0, total: 0 };
   const accuracy = data.total > 0 ? Math.round(100 * data.correct / data.total) : 0;
   const isMastered = data.correct >= MASTERY_REQUIRED && accuracy >= MASTERY_ACCURACY;
-  return {
-    ...data,
-    accuracy,
-    isMastered,
-    progress: Math.min(100, Math.round(100 * data.correct / MASTERY_REQUIRED)),
-    needed: Math.max(0, MASTERY_REQUIRED - data.correct)
-  };
+  return { ...data, accuracy, isMastered, progress: Math.min(100, Math.round(100 * data.correct / MASTERY_REQUIRED)), needed: Math.max(0, MASTERY_REQUIRED - data.correct) };
+}
+
+function getParentMastery(parentId) {
+  const topic = TOPICS.find(t => t.id === parentId);
+  if (!topic || !topic.children || topic.children.length === 0) return getTopicMastery(parentId);
+  let totalCorrect = 0, totalAttempts = 0, masteredCount = 0;
+  topic.children.forEach(c => {
+    const m = getTopicMastery(c.id);
+    totalCorrect += m.correct; totalAttempts += m.total;
+    if (m.isMastered) masteredCount++;
+  });
+  const accuracy = totalAttempts > 0 ? Math.round(100 * totalCorrect / totalAttempts) : 0;
+  return { correct: totalCorrect, total: totalAttempts, accuracy, isMastered: masteredCount === topic.children.length, masteredCount, childCount: topic.children.length, progress: Math.round(100 * masteredCount / topic.children.length) };
 }
 
 function recordAttempt(topicId, correct, mistakeType = null, userAnswer = '') {
-  // Update progress
   const p = loadProgress();
   if (!p[topicId]) p[topicId] = { correct: 0, total: 0 };
   p[topicId].total++;
   if (correct) p[topicId].correct++;
   saveProgress(p);
-  
-  // Record attempt for stats
   const attempts = loadAttempts();
-  attempts.push({
-    topicId,
-    correct,
-    timestamp: Date.now(),
-    difficulty: state.difficulty,
-    answer: userAnswer
-  });
+  attempts.push({ topicId, correct, timestamp: Date.now(), difficulty: state.difficulty, answer: userAnswer });
   saveAttempts(attempts);
-  
-  // Track mistakes
-  if (!correct && mistakeType) {
-    const m = loadMistakes();
-    m[mistakeType] = (m[mistakeType] || 0) + 1;
-    saveMistakes(m);
-  }
+  if (!correct && mistakeType) { const m = loadMistakes(); m[mistakeType] = (m[mistakeType] || 0) + 1; saveMistakes(m); }
 }
 
 function updateSRS(cardId, topicId, correct) {
-  const srs = loadSRS();
-  const now = Date.now();
-  
-  if (!srs[cardId]) {
-    srs[cardId] = {
-      topicId,
-      interval: correct ? 3 : 1,
-      nextDue: now + (correct ? 3 : 1) * 86400000,
-      correct: correct ? 1 : 0,
-      attempts: 1
-    };
-  } else {
-    const card = srs[cardId];
-    if (correct) {
-      card.interval = Math.min(card.interval * 2, 30);
-      card.correct++;
-    } else {
-      card.interval = 1;
-    }
-    card.nextDue = now + card.interval * 86400000;
-    card.attempts++;
-  }
+  const srs = loadSRS(); const now = Date.now();
+  if (!srs[cardId]) { srs[cardId] = { topicId, interval: correct ? 3 : 1, nextDue: now + (correct ? 3 : 1) * 86400000, correct: correct ? 1 : 0, attempts: 1 }; }
+  else { const card = srs[cardId]; if (correct) { card.interval = Math.min(card.interval * 2, 30); card.correct++; } else { card.interval = 1; } card.nextDue = now + card.interval * 86400000; card.attempts++; }
   saveSRS(srs);
 }
 
-function getDueCards() {
-  const srs = loadSRS();
-  const now = Date.now();
-  return Object.entries(srs)
-    .filter(([id, card]) => card.nextDue <= now)
-    .map(([id, card]) => ({ id, ...card }))
-    .sort((a, b) => a.nextDue - b.nextDue);
-}
+function getDueCards() { const srs = loadSRS(); const now = Date.now(); return Object.entries(srs).filter(([id, card]) => card.nextDue <= now).map(([id, card]) => ({ id, ...card })).sort((a, b) => a.nextDue - b.nextDue); }
+function getDueCount() { return getDueCards().length; }
 
-function getDueCount() {
-  return getDueCards().length;
-}
-
-// ============================================================================
-// MATH HELPERS
-// ============================================================================
-
-function rng(seed) {
-  let s = seed;
-  return function() {
-    s = (s * 1103515245 + 12345) & 0x7fffffff;
-    return s / 0x7fffffff;
-  };
-}
-
-function randInt(r, min, max) {
-  return Math.floor(r() * (max - min + 1)) + min;
-}
-
-function choice(r, arr) {
-  return arr[Math.floor(r() * arr.length)];
-}
-
-function gcd(a, b) {
-  a = Math.abs(a); b = Math.abs(b);
-  return b === 0 ? a : gcd(b, a % b);
-}
-
-function frac(n, d) {
-  if (d === 1) return String(n);
-  return `\\frac{${n}}{${d}}`;
-}
-
-function simplifyFrac(n, d) {
-  const g = gcd(n, d);
-  return { num: n / g, den: d / g };
-}
-
-// ============================================================================
-// QUESTION GENERATORS (All 15 Topics with Difficulty)
-// ============================================================================
+function rng(seed) { let s = seed; return function() { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; }; }
+function randInt(r, min, max) { return Math.floor(r() * (max - min + 1)) + min; }
+function choice(r, arr) { return arr[Math.floor(r() * arr.length)]; }
+function gcd(a, b) { a = Math.abs(a); b = Math.abs(b); return b === 0 ? a : gcd(b, a % b); }
+function frac(n, d) { return d === 1 ? String(n) : `\\frac{${n}}{${d}}`; }
+function simplifyFrac(n, d) { const g = gcd(n, d); return { num: n / g, den: d / g }; }
 
 const generators = {
-  // 1. BIDMAS
   bidmas: (seed, diff) => {
     const r = rng(seed);
-    let prompt, ans, steps, hints, mistakeTypes = ['arithmetic'];
-    
     if (diff === 1) {
       const a = randInt(r, 2, 9), b = randInt(r, 2, 9), c = randInt(r, 1, 9);
       const op = choice(r, ['+', '-']);
-      ans = op === '+' ? a + b * c : a - b * c;
-      prompt = `Evaluate: \\( ${a} ${op} ${b} \\times ${c} \\)`;
-      steps = [
-        `Multiplication first: \\( ${b} \\times ${c} = ${b*c} \\)`,
-        `Then: \\( ${a} ${op} ${b*c} = ${ans} \\)`
-      ];
-      hints = [
-        'Remember BIDMAS: multiplication before addition/subtraction.',
-        `Do \\( ${b} \\times ${c} = ${b*c} \\) first.`,
-        `Then \\( ${a} ${op} ${b*c} = ${ans} \\).`
-      ];
+      const ans = op === '+' ? a + b * c : a - b * c;
+      return { prompt: `Evaluate: \\( ${a} ${op} ${b} \\times ${c} \\)`, answer: String(ans), steps: [`Multiplication first: ${b} x ${c} = ${b*c}`, `Then: ${a} ${op} ${b*c} = ${ans}`], hints: ['BIDMAS: multiplication before addition/subtraction', `Do ${b} x ${c} first`, `= ${ans}`], mistakeTypes: ['arithmetic'] };
     } else if (diff === 2) {
       const a = randInt(r, 2, 9), b = randInt(r, 2, 9), c = randInt(r, 1, 5), d = randInt(r, 1, 9);
-      ans = (a + b) * c - d;
-      prompt = `Evaluate: \\( (${a} + ${b}) \\times ${c} - ${d} \\)`;
-      steps = [
-        `Brackets first: \\( ${a} + ${b} = ${a+b} \\)`,
-        `Multiply: \\( ${a+b} \\times ${c} = ${(a+b)*c} \\)`,
-        `Subtract: \\( ${(a+b)*c} - ${d} = ${ans} \\)`
-      ];
-      hints = [
-        'Brackets come first in BIDMAS.',
-        `\\( ${a} + ${b} = ${a+b} \\)`,
-        `Then multiply by ${c} and subtract ${d}.`
-      ];
+      const ans = (a + b) * c - d;
+      return { prompt: `Evaluate: \\( (${a} + ${b}) \\times ${c} - ${d} \\)`, answer: String(ans), steps: [`Brackets: ${a}+${b}=${a+b}`, `Multiply: ${a+b} x ${c} = ${(a+b)*c}`, `Subtract: ${(a+b)*c} - ${d} = ${ans}`], hints: ['Brackets first', `${a}+${b}=${a+b}`, `Then multiply and subtract`], mistakeTypes: ['arithmetic'] };
     } else {
       const a = randInt(r, 2, 6), b = randInt(r, 2, 4), c = randInt(r, 1, 5), d = randInt(r, 1, 9);
-      ans = a*a + b * c - d;
-      prompt = `Evaluate: \\( ${a}^{2} + ${b} \\times ${c} - ${d} \\)`;
-      steps = [
-        `Indices first: \\( ${a}^{2} = ${a*a} \\)`,
-        `Multiplication: \\( ${b} \\times ${c} = ${b*c} \\)`,
-        `Left to right: \\( ${a*a} + ${b*c} - ${d} = ${ans} \\)`
-      ];
-      hints = [
-        'Indices (powers) come before multiplication.',
-        `\\( ${a}^{2} = ${a*a} \\)`,
-        `Then \\( ${b} \\times ${c} = ${b*c} \\), then add and subtract.`
-      ];
+      const ans = a*a + b * c - d;
+      return { prompt: `Evaluate: \\( ${a}^{2} + ${b} \\times ${c} - ${d} \\)`, answer: String(ans), steps: [`Indices: ${a}^2=${a*a}`, `Multiply: ${b}x${c}=${b*c}`, `Left to right: ${a*a}+${b*c}-${d}=${ans}`], hints: ['Indices before multiplication', `${a}^2=${a*a}`, `Then ${b}x${c}=${b*c}`], mistakeTypes: ['arithmetic'] };
     }
-    return { prompt, answer: String(ans), steps, hints, mistakeTypes };
   },
-
-  // 2. Fractions
-  fractions: (seed, diff) => {
+  'fractions.simplify': (seed, diff) => {
     const r = rng(seed);
-    const variant = seed % 4;
-    let prompt, ans, steps, hints, mistakeTypes = ['arithmetic'];
-    
-    if (variant === 0) {
-      // Simplify
-      const factor = randInt(r, 2, 6);
-      let num = randInt(r, 1, 6);
-      let den = randInt(r, num + 1, 10);
-      while (gcd(num, den) !== 1) den = randInt(r, num + 1, 10);
-      const bigN = num * factor, bigD = den * factor;
-      prompt = `Simplify: \\( ${frac(bigN, bigD)} \\)`;
-      ans = `${num}/${den}`;
-      steps = [
-        `Find GCD of ${bigN} and ${bigD}: GCD = ${factor}`,
-        `Divide both by ${factor}: \\( ${frac(num, den)} \\)`
-      ];
-      hints = [
-        'Find the greatest common divisor.',
-        `Both ${bigN} and ${bigD} are divisible by ${factor}.`,
-        `\\( ${bigN} \\div ${factor} = ${num} \\), \\( ${bigD} \\div ${factor} = ${den} \\)`
-      ];
-    } else if (variant === 1) {
-      // Add fractions
-      let d1 = randInt(r, 2, 6), d2 = randInt(r, 2, 6);
-      let n1 = randInt(r, 1, d1 - 1), n2 = randInt(r, 1, d2 - 1);
-      const lcd = (d1 * d2) / gcd(d1, d2);
-      const newN1 = n1 * (lcd / d1), newN2 = n2 * (lcd / d2);
-      const sumN = newN1 + newN2;
-      const sf = simplifyFrac(sumN, lcd);
-      ans = sf.den === 1 ? String(sf.num) : `${sf.num}/${sf.den}`;
-      prompt = `Calculate: \\( ${frac(n1, d1)} + ${frac(n2, d2)} \\)`;
-      steps = [
-        `LCD of ${d1} and ${d2} is ${lcd}`,
-        `Convert: \\( ${frac(newN1, lcd)} + ${frac(newN2, lcd)} \\)`,
-        `Add: \\( ${frac(sumN, lcd)} \\)`,
-        sf.den !== lcd ? `Simplify: \\( ${frac(sf.num, sf.den)} \\)` : null
-      ].filter(Boolean);
-      hints = [
-        'Find a common denominator first.',
-        `LCD is ${lcd}.`,
-        `Convert both fractions then add numerators.`
-      ];
-    } else if (variant === 2) {
-      // Multiply fractions
-      const n1 = randInt(r, 1, 5), d1 = randInt(r, 2, 7);
-      const n2 = randInt(r, 1, 5), d2 = randInt(r, 2, 7);
-      const prodN = n1 * n2, prodD = d1 * d2;
-      const sf = simplifyFrac(prodN, prodD);
-      ans = sf.den === 1 ? String(sf.num) : `${sf.num}/${sf.den}`;
-      prompt = `Calculate: \\( ${frac(n1, d1)} \\times ${frac(n2, d2)} \\)`;
-      steps = [
-        `Multiply numerators: \\( ${n1} \\times ${n2} = ${prodN} \\)`,
-        `Multiply denominators: \\( ${d1} \\times ${d2} = ${prodD} \\)`,
-        `Result: \\( ${frac(prodN, prodD)} \\)`,
-        sf.num !== prodN || sf.den !== prodD ? `Simplified: \\( ${frac(sf.num, sf.den)} \\)` : null
-      ].filter(Boolean);
-      hints = [
-        'Multiply tops together, bottoms together.',
-        `\\( ${n1} \\times ${n2} = ${prodN} \\)`,
-        `\\( ${d1} \\times ${d2} = ${prodD} \\), then simplify.`
-      ];
-    } else {
-      // Fraction of quantity
-      const den = choice(r, [2, 3, 4, 5, 8, 10]);
-      const num = randInt(r, 1, den - 1);
-      const qty = den * randInt(r, 2, 10);
-      const ansVal = (num / den) * qty;
-      ans = String(ansVal);
-      prompt = `Find \\( ${frac(num, den)} \\) of \\( ${qty} \\)`;
-      steps = [
-        `Divide ${qty} by ${den}: \\( ${qty} \\div ${den} = ${qty/den} \\)`,
-        `Multiply by ${num}: \\( ${qty/den} \\times ${num} = ${ansVal} \\)`
-      ];
-      hints = [
-        '"Of" means multiply.',
-        `First find \\( \\frac{1}{${den}} \\) of ${qty} = ${qty/den}`,
-        `Then multiply by ${num}.`
-      ];
-    }
-    return { prompt, answer: ans, steps, hints, mistakeTypes };
+    const factor = randInt(r, 2, diff === 1 ? 4 : 6);
+    let num = randInt(r, 1, 6), den = randInt(r, num + 1, 10);
+    while (gcd(num, den) !== 1) den = randInt(r, num + 1, 10);
+    const bigN = num * factor, bigD = den * factor;
+    return { prompt: `Simplify: \\( ${frac(bigN, bigD)} \\)`, answer: `${num}/${den}`, steps: [`GCD of ${bigN} and ${bigD} is ${factor}`, `Divide both by ${factor}: ${num}/${den}`], hints: ['Find GCD', `Both divisible by ${factor}`, `${bigN}/${factor}=${num}, ${bigD}/${factor}=${den}`], mistakeTypes: ['arithmetic'] };
   },
-
-  // 3. Percentages
-  percentages: (seed, diff) => {
+  'fractions.add_sub': (seed, diff) => {
     const r = rng(seed);
+    const op = choice(r, ['+', '-']);
+    let d1 = randInt(r, 2, 6), d2 = randInt(r, 2, 6);
+    let n1 = randInt(r, 1, d1-1), n2 = randInt(r, 1, d2-1);
+    const lcd = (d1*d2)/gcd(d1,d2);
+    const newN1 = n1*(lcd/d1), newN2 = n2*(lcd/d2);
+    const resN = op==='+' ? newN1+newN2 : newN1-newN2;
+    const sf = simplifyFrac(Math.abs(resN), lcd);
+    const sign = resN < 0 ? '-' : '';
+    const ans = sf.den === 1 ? `${sign}${sf.num}` : `${sign}${sf.num}/${sf.den}`;
+    return { prompt: `Calculate: \\( ${frac(n1,d1)} ${op} ${frac(n2,d2)} \\)`, answer: ans, steps: [`LCD = ${lcd}`, `Convert: ${newN1}/${lcd} ${op} ${newN2}/${lcd}`, `= ${resN}/${lcd}`, sf.den!==lcd?`Simplify: ${ans}`:null].filter(Boolean), hints: ['Find common denominator', `LCD = ${lcd}`, `Convert then ${op==='+'?'add':'subtract'}`], mistakeTypes: ['arithmetic'] };
+  },
+  'fractions.mul_div': (seed, diff) => {
+    const r = rng(seed);
+    const op = choice(r, ['*', '/']);
+    const n1 = randInt(r, 1, 5), d1 = randInt(r, 2, 7);
+    const n2 = randInt(r, 1, 5), d2 = randInt(r, 2, 7);
+    let prodN, prodD;
+    if (op === '*') { prodN = n1*n2; prodD = d1*d2; }
+    else { prodN = n1*d2; prodD = d1*n2; }
+    const sf = simplifyFrac(prodN, prodD);
+    const ans = sf.den === 1 ? String(sf.num) : `${sf.num}/${sf.den}`;
+    const opStr = op === '*' ? '\\times' : '\\div';
+    return { prompt: `Calculate: \\( ${frac(n1,d1)} ${opStr} ${frac(n2,d2)} \\)`, answer: ans, steps: op==='*'?[`Multiply tops: ${n1}x${n2}=${prodN}`,`Multiply bottoms: ${d1}x${d2}=${prodD}`,`= ${prodN}/${prodD}`,sf.num!==prodN?`Simplify: ${ans}`:null].filter(Boolean):[`Multiply by reciprocal: ${n1}/${d1} x ${d2}/${n2}`,`= ${prodN}/${prodD}`,sf.num!==prodN?`Simplify: ${ans}`:null].filter(Boolean), hints: op==='*'?['Multiply tops and bottoms',`${n1}x${n2}=${prodN}`,`${d1}x${d2}=${prodD}`]:['Divide = multiply by reciprocal',`Flip second fraction`,`Then multiply`], mistakeTypes: ['arithmetic'] };
+  },
+  'fractions.of_quantity': (seed, diff) => {
+    const r = rng(seed);
+    const den = choice(r, [2,3,4,5,8,10]);
+    const num = randInt(r, 1, den-1);
+    const qty = den * randInt(r, 2, 10);
+    const ansVal = (num/den)*qty;
+    return { prompt: `Find \\( ${frac(num,den)} \\) of \\( ${qty} \\)`, answer: String(ansVal), steps: [`Divide: ${qty}/${den}=${qty/den}`,`Multiply: ${qty/den}x${num}=${ansVal}`], hints: ['"Of" means multiply',`1/${den} of ${qty} = ${qty/den}`,`Then x${num}`], mistakeTypes: ['arithmetic'] };
+  },
+  'percentages.of_quantity': (seed, diff) => {
+    const r = rng(seed);
+    const pct = choice(r, diff===1?[10,20,25,50]:[15,30,40,75]);
+    const qty = randInt(r, 50, 500);
+    const ansVal = pct*qty/100;
+    return { prompt: `Find \\( ${pct}\\% \\) of \\( ${qty} \\)`, answer: String(ansVal), steps: [`${pct}% = ${pct/100}`,`${pct/100} x ${qty} = ${ansVal}`], hints: [`${pct}% = ${pct/100}`,`Multiply: ${pct/100} x ${qty}`,`= ${ansVal}`], mistakeTypes: ['arithmetic'] };
+  },
+  'percentages.increase_decrease': (seed, diff) => {
+    const r = rng(seed);
+    const pct = choice(r, [5,10,15,20,25]);
+    const original = randInt(r, 50, 300);
+    const dir = choice(r, ['increase', 'decrease']);
+    const factor = dir==='increase' ? 1+pct/100 : 1-pct/100;
+    const ansVal = parseFloat((original*factor).toFixed(2));
+    return { prompt: `${dir.charAt(0).toUpperCase()+dir.slice(1)} \\( ${original} \\) by \\( ${pct}\\% \\)`, answer: String(ansVal), steps: [`${pct}% of ${original} = ${pct*original/100}`,`${dir==='increase'?'Add':'Subtract'}: ${original} ${dir==='increase'?'+':'-'} ${pct*original/100} = ${ansVal}`], hints: [`Find ${pct}% of ${original}`,`= ${pct*original/100}`,`${dir==='increase'?'Add to':'Subtract from'} ${original}`], mistakeTypes: ['arithmetic'] };
+  },
+  'percentages.scale_factors': (seed, diff) => {
+    const r = rng(seed);
+    const pct = choice(r, [10,20,25,50]);
+    const dir = choice(r, ['increase','decrease']);
+    const sf = dir==='increase' ? 1+pct/100 : 1-pct/100;
+    return { prompt: `Scale factor for ${pct}% ${dir}?`, answer: String(sf), steps: [`${pct}% = ${pct/100}`,`Scale factor = ${dir==='increase'?'1+':'1-'}${pct/100} = ${sf}`], hints: ['Scale factor = 1 +/- percentage',`${pct}% = ${pct/100}`,`${dir==='increase'?'1+':'1-'}${pct/100} = ${sf}`], mistakeTypes: ['arithmetic'] };
+  },
+  'powers.laws': (seed, diff) => {
+    const r = rng(seed);
+    const base = randInt(r, 2, 5);
+    const m = randInt(r, 1, 4), n = randInt(r, 1, 4);
     const variant = seed % 3;
-    let prompt, ans, steps, hints, mistakeTypes = ['arithmetic'];
-    
     if (variant === 0) {
-      // Percentage of quantity
-      const pct = choice(r, diff === 1 ? [10, 20, 25, 50] : diff === 2 ? [15, 30, 40, 75] : [12, 17.5, 33, 45]);
-      const qty = diff === 1 ? randInt(r, 20, 200) : diff === 2 ? randInt(r, 50, 500) : randInt(r, 100, 1000);
-      const ansVal = pct * qty / 100;
-      ans = String(ansVal % 1 === 0 ? ansVal : parseFloat(ansVal.toFixed(2)));
-      prompt = `Find \\( ${pct}\\% \\) of \\( ${qty} \\)`;
-      steps = [
-        `Convert: \\( ${pct}\\% = ${pct/100} \\)`,
-        `Multiply: \\( ${pct/100} \\times ${qty} = ${ansVal} \\)`
-      ];
-      hints = [
-        `Convert ${pct}% to decimal: ${pct/100}`,
-        `Multiply: ${pct/100} × ${qty}`,
-        `= ${ansVal}`
-      ];
+      return { prompt: `Simplify: \\( ${base}^{${m}} \\times ${base}^{${n}} \\)`, answer: `${base}^${m+n}`, steps: [`Add indices: ${m}+${n}=${m+n}`,`= ${base}^${m+n}`], hints: ['Multiply = add indices',`${m}+${n}=${m+n}`,'Write result'], mistakeTypes: ['algebra'] };
     } else if (variant === 1) {
-      // Percentage increase/decrease
-      const pct = choice(r, diff === 1 ? [5, 10, 20] : diff === 2 ? [15, 25, 30] : [12, 18, 35]);
-      const original = randInt(r, 50, 300);
-      const direction = choice(r, ['increase', 'decrease']);
-      const factor = direction === 'increase' ? 1 + pct/100 : 1 - pct/100;
-      const ansVal = parseFloat((original * factor).toFixed(2));
-      ans = String(ansVal % 1 === 0 ? ansVal : ansVal);
-      prompt = `${direction.charAt(0).toUpperCase() + direction.slice(1)} \\( ${original} \\) by \\( ${pct}\\% \\)`;
-      const change = parseFloat((pct * original / 100).toFixed(2));
-      steps = [
-        `Find \\( ${pct}\\% \\) of ${original}: ${change}`,
-        `${direction === 'increase' ? 'Add' : 'Subtract'}: \\( ${original} ${direction === 'increase' ? '+' : '-'} ${change} = ${ansVal} \\)`
-      ];
-      hints = [
-        `First find ${pct}% of ${original}.`,
-        `${pct}% of ${original} = ${change}`,
-        `${direction === 'increase' ? 'Add to' : 'Subtract from'} ${original}.`
-      ];
+      const m2 = randInt(r, 3, 7), n2 = randInt(r, 1, m2-1);
+      return { prompt: `Simplify: \\( ${base}^{${m2}} \\div ${base}^{${n2}} \\)`, answer: `${base}^${m2-n2}`, steps: [`Subtract indices: ${m2}-${n2}=${m2-n2}`,`= ${base}^${m2-n2}`], hints: ['Divide = subtract indices',`${m2}-${n2}=${m2-n2}`,'Write result'], mistakeTypes: ['algebra'] };
     } else {
-      // Scale factors
-      const pct = choice(r, [10, 20, 25, 50]);
-      const direction = choice(r, ['increase', 'decrease']);
-      const sf = direction === 'increase' ? 1 + pct/100 : 1 - pct/100;
-      ans = String(sf);
-      prompt = `What is the scale factor for a \\( ${pct}\\% \\) ${direction}?`;
-      steps = [
-        `A ${pct}% ${direction} means multiply by ${sf}.`,
-        `\\( ${direction === 'increase' ? '1 + ' + pct/100 : '1 - ' + pct/100} = ${sf} \\)`
-      ];
-      hints = [
-        'Scale factor = 1 ± percentage as decimal.',
-        `${pct}% = ${pct/100} as decimal.`,
-        `${direction === 'increase' ? '1 +' : '1 -'} ${pct/100} = ${sf}`
-      ];
+      return { prompt: `Simplify: \\( (${base}^{${m}})^{${n}} \\)`, answer: `${base}^${m*n}`, steps: [`Multiply indices: ${m}x${n}=${m*n}`,`= ${base}^${m*n}`], hints: ['Power of power = multiply',`${m}x${n}=${m*n}`,'Write result'], mistakeTypes: ['algebra'] };
     }
-    return { prompt, answer: ans, steps, hints, mistakeTypes };
   },
-
-  // 4. Powers & Indices
-  powers: (seed, diff) => {
+  'powers.negative_fractional': (seed, diff) => {
     const r = rng(seed);
-    let prompt, ans, steps, hints, mistakeTypes = ['algebra'];
-    
-    if (diff === 1) {
-      const base = randInt(r, 2, 5);
-      const m = randInt(r, 1, 4), n = randInt(r, 1, 4);
-      ans = `${base}^${m+n}`;
-      prompt = `Simplify: \\( ${base}^{${m}} \\times ${base}^{${n}} \\)`;
-      steps = [
-        `When multiplying same base, add indices: \\( ${m} + ${n} = ${m+n} \\)`,
-        `Result: \\( ${base}^{${m+n}} \\)`
-      ];
-      hints = [
-        'Multiplying powers: add the exponents.',
-        `The indices are ${m} and ${n}.`,
-        `${m} + ${n} = ${m+n}`
-      ];
-    } else if (diff === 2) {
-      const base = randInt(r, 2, 5);
-      const m = randInt(r, 3, 6), n = randInt(r, 1, 3);
-      ans = `${base}^${m-n}`;
-      prompt = `Simplify: \\( ${base}^{${m}} \\div ${base}^{${n}} \\)`;
-      steps = [
-        `When dividing same base, subtract indices: \\( ${m} - ${n} = ${m-n} \\)`,
-        `Result: \\( ${base}^{${m-n}} \\)`
-      ];
-      hints = [
-        'Dividing powers: subtract the exponents.',
-        `The indices are ${m} and ${n}.`,
-        `${m} - ${n} = ${m-n}`
-      ];
-    } else {
-      // Fractional indices
-      const bases = [[4, 2, 2], [9, 2, 3], [16, 2, 4], [25, 2, 5], [8, 3, 2], [27, 3, 3]];
-      const [base, root, result] = choice(r, bases);
-      ans = String(result);
-      prompt = `Evaluate: \\( ${base}^{${frac(1, root)}} \\)`;
-      steps = [
-        `\\( x^{${frac(1, root)}} \\) means the ${root}${root === 2 ? 'nd' : root === 3 ? 'rd' : 'th'} root of x`,
-        `\\( \\sqrt${root > 2 ? `[${root}]` : ''}{${base}} = ${result} \\)`
-      ];
-      hints = [
-        'Fractional index means a root.',
-        `\\( x^{1/${root}} = \\sqrt${root > 2 ? `[${root}]` : ''}{x} \\)`,
-        `What number to the power ${root} gives ${base}?`
-      ];
-    }
-    return { prompt, answer: ans, steps, hints, mistakeTypes };
-  },
-
-  // 5. Logarithms
-  logarithms: (seed, diff) => {
-    const r = rng(seed);
-    let prompt, ans, steps, hints, mistakeTypes = ['log'];
-    
-    if (diff === 1) {
-      const exp = randInt(r, 1, 5);
-      const val = Math.pow(10, exp);
-      ans = String(exp);
-      prompt = `Evaluate: \\( \\log_{10}(${val}) \\)`;
-      steps = [
-        `\\( \\log_{10}(${val}) \\) asks: 10 to what power = ${val}?`,
-        `\\( 10^{${exp}} = ${val} \\), so answer is ${exp}`
-      ];
-      hints = [
-        '\\( \\log_{10}(x) \\) asks: what power of 10 gives x?',
-        `Express ${val} as a power of 10.`,
-        `${val} = 10^{${exp}}`
-      ];
-    } else if (diff === 2) {
-      const a = randInt(r, 2, 9), b = randInt(r, 2, 9);
-      ans = `log(${a*b})`;
-      prompt = `Simplify \\( \\log(${a}) + \\log(${b}) \\) into a single logarithm`;
-      steps = [
-        `Product rule: \\( \\log(a) + \\log(b) = \\log(ab) \\)`,
-        `\\( \\log(${a}) + \\log(${b}) = \\log(${a*b}) \\)`
-      ];
-      hints = [
-        'Use the product rule for logarithms.',
-        '\\( \\log(a) + \\log(b) = \\log(a × b) \\)',
-        `Multiply ${a} × ${b} = ${a*b}`
-      ];
-    } else {
-      const exp = randInt(r, 1, 4);
-      ans = String(exp);
-      prompt = `Solve for \\( x \\): \\( 10^x = ${Math.pow(10, exp)} \\)`;
-      steps = [
-        `Take \\( \\log_{10} \\) of both sides: \\( x = \\log_{10}(${Math.pow(10, exp)}) \\)`,
-        `\\( x = ${exp} \\)`
-      ];
-      hints = [
-        'Take \\( \\log_{10} \\) of both sides.',
-        '\\( \\log_{10}(10^x) = x \\)',
-        `\\( \\log_{10}(${Math.pow(10, exp)}) = ${exp} \\)`
-      ];
-      mistakeTypes = ['log', 'algebra'];
-    }
-    return { prompt, answer: ans, steps, hints, mistakeTypes };
-  },
-
-  // 6. Exponentials
-  exponentials: (seed, diff) => {
-    const r = rng(seed);
-    let prompt, ans, steps, hints, mistakeTypes = ['formula', 'arithmetic'];
-    
     if (seed % 2 === 0) {
-      // Growth
-      const P0 = choice(r, [100, 200, 500, 1000]);
-      const rate = choice(r, diff === 1 ? [0.1, 0.2] : diff === 2 ? [0.05, 0.15] : [0.03, 0.08, 0.12]);
-      const t = randInt(r, 1, diff === 1 ? 3 : diff === 2 ? 4 : 5);
-      const rt = rate * t;
-      const ansVal = parseFloat((P0 * Math.exp(rt)).toFixed(2));
-      ans = String(ansVal);
-      prompt = `A quantity starts at \\( ${P0} \\) and grows at rate \\( ${rate} \\)/year. Find the value after \\( ${t} \\) years using \\( P = P_0 e^{rt} \\). Round to 2 d.p.`;
-      steps = [
-        `\\( P = ${P0} \\times e^{${rate} \\times ${t}} \\)`,
-        `\\( P = ${P0} \\times e^{${rt.toFixed(4)}} \\)`,
-        `\\( P = ${P0} \\times ${Math.exp(rt).toFixed(6)} \\)`,
-        `\\( P \\approx ${ansVal} \\)`
-      ];
-      hints = [
-        'Use \\( P = P_0 \\times e^{rt} \\)',
-        `Calculate exponent: r × t = ${rate} × ${t} = ${rt}`,
-        `\\( e^{${rt}} \\approx ${Math.exp(rt).toFixed(4)} \\), multiply by ${P0}`
-      ];
+      const bases = [[4,2,2],[9,2,3],[16,2,4],[25,2,5],[8,3,2],[27,3,3]];
+      const [base,root,result] = choice(r, bases);
+      return { prompt: `Evaluate: \\( ${base}^{${frac(1,root)}} \\)`, answer: String(result), steps: [`x^(1/${root}) = ${root}th root of x`,`${root}th root of ${base} = ${result}`], hints: ['Fractional index = root',`What^${root} = ${base}?`,`= ${result}`], mistakeTypes: ['algebra'] };
     } else {
-      // Half-life
-      const hl = choice(r, [2, 5, 10, 20]);
-      const A0 = choice(r, [100, 200, 400, 800]);
-      const periods = randInt(r, 1, diff === 1 ? 2 : diff === 2 ? 3 : 4);
-      const t = hl * periods;
-      const ansVal = A0 / Math.pow(2, periods);
-      ans = `${ansVal}g`;
-      prompt = `A substance has half-life ${hl} years. Starting from ${A0}g, how much remains after ${t} years?`;
-      steps = [
-        `Number of half-lives: ${t} ÷ ${hl} = ${periods}`,
-        `Remaining: \\( ${A0} \\div 2^{${periods}} = ${A0} \\div ${Math.pow(2, periods)} = ${ansVal} \\)g`
-      ];
-      hints = [
-        'Each half-life halves the quantity.',
-        `In ${t} years there are ${t}/${hl} = ${periods} half-lives.`,
-        `Divide ${A0} by 2, ${periods} times.`
-      ];
+      const base = randInt(r, 2, 5), n = randInt(r, 1, 2);
+      const result = Math.pow(base, n);
+      return { prompt: `Evaluate: \\( ${base}^{-${n}} \\)`, answer: `1/${result}`, steps: [`Negative = reciprocal: 1/${base}^${n}`,`${base}^${n}=${result}`,`= 1/${result}`], hints: ['Negative power = 1/...',`${base}^${n}=${result}`,`= 1/${result}`], mistakeTypes: ['algebra'] };
     }
-    return { prompt, answer: ans, steps, hints, mistakeTypes };
   },
-
-  // 7. Trigonometry
-  trigonometry: (seed, diff) => {
+  'logarithms.basics': (seed, diff) => {
     const r = rng(seed);
-    let prompt, ans, steps, hints, mistakeTypes = ['trig'];
-    
-    if (diff === 1) {
-      // SOHCAHTOA basic
-      const opp = randInt(r, 3, 12);
-      const hyp = randInt(r, opp + 1, 20);
-      const angle = parseFloat((Math.asin(opp / hyp) * 180 / Math.PI).toFixed(1));
-      ans = `${angle}°`;
-      prompt = `In a right triangle, opposite = ${opp}, hypotenuse = ${hyp}. Find \\( \\theta \\) to 1 d.p.`;
-      steps = [
-        `\\( \\sin(\\theta) = \\frac{\\text{opp}}{\\text{hyp}} = \\frac{${opp}}{${hyp}} = ${(opp/hyp).toFixed(4)} \\)`,
-        `\\( \\theta = \\arcsin(${(opp/hyp).toFixed(4)}) = ${angle}° \\)`
-      ];
-      hints = [
-        'SOH: sin = opposite / hypotenuse',
-        `\\( \\sin(\\theta) = ${opp}/${hyp} \\)`,
-        'Use inverse sin (arcsin) to find the angle.'
-      ];
-    } else if (diff === 2) {
-      // Special angles
-      const angles = {
-        30: { sin: '1/2', cos: '√3/2', tan: '1/√3' },
-        45: { sin: '√2/2', cos: '√2/2', tan: '1' },
-        60: { sin: '√3/2', cos: '1/2', tan: '√3' }
-      };
-      const ang = choice(r, [30, 45, 60]);
-      const func = choice(r, ['sin', 'cos', 'tan']);
-      ans = angles[ang][func];
-      prompt = `What is \\( \\${func}(${ang}°) \\)? Give exact value.`;
-      steps = [
-        'This is a standard special angle result.',
-        `\\( \\${func}(${ang}°) = ${ans} \\)`
-      ];
-      hints = [
-        'Recall special angle values: 30°, 45°, 60°.',
-        `Think about the ${func} ratio for ${ang}°.`,
-        `The answer involves ${ans.includes('√') ? 'square roots' : 'simple values'}.`
-      ];
-    } else {
-      // Sine rule
-      const A = randInt(r, 30, 70);
-      const B = randInt(r, 30, 150 - A);
-      const a = randInt(r, 5, 20);
-      const sinA = Math.sin(A * Math.PI / 180);
-      const sinB = Math.sin(B * Math.PI / 180);
-      const b = parseFloat((a * sinB / sinA).toFixed(2));
-      ans = String(b);
-      prompt = `Triangle ABC: A = ${A}°, B = ${B}°, a = ${a}. Find side b (2 d.p.)`;
-      steps = [
-        `Sine rule: \\( \\frac{a}{\\sin A} = \\frac{b}{\\sin B} \\)`,
-        `\\( b = \\frac{a \\sin B}{\\sin A} \\)`,
-        `\\( b = \\frac{${a} \\times ${sinB.toFixed(4)}}{${sinA.toFixed(4)}} \\)`,
-        `\\( b \\approx ${b} \\)`
-      ];
-      hints = [
-        'Use sine rule: a/sin(A) = b/sin(B)',
-        `Rearrange: b = a × sin(B) / sin(A)`,
-        `sin(${B}°) ≈ ${sinB.toFixed(4)}, sin(${A}°) ≈ ${sinA.toFixed(4)}`
-      ];
-      mistakeTypes = ['trig', 'formula', 'arithmetic'];
-    }
-    return { prompt, answer: ans, steps, hints, mistakeTypes };
+    const exp = randInt(r, 1, 4);
+    const val = Math.pow(10, exp);
+    return { prompt: `Evaluate: \\( \\log_{10}(${val}) \\)`, answer: String(exp), steps: [`log10 asks: 10^? = ${val}`,`10^${exp} = ${val}`,`So log10(${val}) = ${exp}`], hints: ['What power of 10?',`${val} = 10^?`,`= ${exp}`], mistakeTypes: ['log'] };
   },
-
-  // 8. Vectors
-  vectors: (seed, diff) => {
+  'logarithms.rules': (seed, diff) => {
     const r = rng(seed);
-    let prompt, ans, steps, hints, mistakeTypes = ['arithmetic', 'sign'];
-    
-    if (seed % 2 === 0 || diff === 1) {
-      // Add/subtract
-      const ax = randInt(r, -5, 5), ay = randInt(r, -5, 5);
-      const bx = randInt(r, -5, 5), by = randInt(r, -5, 5);
-      const op = diff === 1 ? '+' : choice(r, ['+', '-']);
-      const rx = op === '+' ? ax + bx : ax - bx;
-      const ry = op === '+' ? ay + by : ay - by;
-      ans = `(${rx}, ${ry})`;
-      prompt = `Calculate: \\( \\begin{pmatrix} ${ax} \\\\ ${ay} \\end{pmatrix} ${op} \\begin{pmatrix} ${bx} \\\\ ${by} \\end{pmatrix} \\)`;
-      steps = [
-        `x-component: \\( ${ax} ${op} ${bx} = ${rx} \\)`,
-        `y-component: \\( ${ay} ${op} ${by} = ${ry} \\)`,
-        `Result: \\( (${rx}, ${ry}) \\)`
-      ];
-      hints = [
-        `${op === '+' ? 'Add' : 'Subtract'} corresponding components.`,
-        `x: ${ax} ${op} ${bx} = ${rx}`,
-        `y: ${ay} ${op} ${by} = ${ry}`
-      ];
-    } else {
-      // Components from magnitude and angle
-      const mag = randInt(r, 3, 15);
-      const angle = choice(r, [30, 45, 60, 90, 120, 135, 150]);
-      const x = parseFloat((mag * Math.cos(angle * Math.PI / 180)).toFixed(2));
-      const y = parseFloat((mag * Math.sin(angle * Math.PI / 180)).toFixed(2));
-      ans = `(${x}, ${y})`;
-      prompt = `A vector has magnitude ${mag} and direction ${angle}°. Find its components (2 d.p.)`;
-      steps = [
-        `x = r × cos(θ) = ${mag} × cos(${angle}°) = ${x}`,
-        `y = r × sin(θ) = ${mag} × sin(${angle}°) = ${y}`
-      ];
-      hints = [
-        'Use x = r×cos(θ), y = r×sin(θ)',
-        `cos(${angle}°) ≈ ${Math.cos(angle * Math.PI / 180).toFixed(4)}`,
-        `sin(${angle}°) ≈ ${Math.sin(angle * Math.PI / 180).toFixed(4)}`
-      ];
-      mistakeTypes = ['trig', 'arithmetic'];
-    }
-    return { prompt, answer: ans, steps, hints, mistakeTypes };
+    const a = randInt(r, 2, 9), b = randInt(r, 2, 9);
+    return { prompt: `Simplify: \\( \\log(${a}) + \\log(${b}) \\)`, answer: `log(${a*b})`, steps: [`Product rule: log(a)+log(b)=log(ab)`,`log(${a})+log(${b})=log(${a*b})`], hints: ['Use product rule',`log(a)+log(b)=log(ab)`,`${a}x${b}=${a*b}`], mistakeTypes: ['log'] };
   },
-
-  // 9. Algebra
-  algebra: (seed, diff) => {
+  'logarithms.equations': (seed, diff) => {
     const r = rng(seed);
-    const variant = seed % 4;
-    let prompt, ans, steps, hints, mistakeTypes = ['algebra'];
-    
-    if (variant === 0) {
-      // Collect terms
-      const a = randInt(r, 1, 9), b = randInt(r, 1, 9);
-      const c = randInt(r, 1, 9), d = randInt(r, 1, 9);
-      const coeff = a + c, constant = b + d;
-      prompt = `Simplify: \\( ${a}x + ${b} + ${c}x + ${d} \\)`;
-      ans = `${coeff}x + ${constant}`;
-      steps = [
-        `Collect x terms: \\( ${a}x + ${c}x = ${coeff}x \\)`,
-        `Collect constants: \\( ${b} + ${d} = ${constant} \\)`,
-        `Result: \\( ${coeff}x + ${constant} \\)`
-      ];
-      hints = [
-        'Group like terms together.',
-        `x terms: ${a}x and ${c}x`,
-        `${a} + ${c} = ${coeff}, so ${coeff}x. Constants: ${b} + ${d} = ${constant}.`
-      ];
-    } else if (variant === 1) {
-      // Expand
-      const a = randInt(r, 2, diff === 1 ? 5 : diff === 2 ? 8 : 12);
-      const b = randInt(r, 1, 9), c = randInt(r, 1, 9);
-      prompt = `Expand: \\( ${a}(${b}x + ${c}) \\)`;
-      ans = `${a*b}x + ${a*c}`;
-      steps = [
-        `Multiply each term by ${a}:`,
-        `\\( ${a} \\times ${b}x = ${a*b}x \\)`,
-        `\\( ${a} \\times ${c} = ${a*c} \\)`,
-        `Result: \\( ${a*b}x + ${a*c} \\)`
-      ];
-      hints = [
-        'Multiply each term inside by the factor outside.',
-        `First: ${a} × ${b}x = ${a*b}x`,
-        `Second: ${a} × ${c} = ${a*c}`
-      ];
-    } else if (variant === 2) {
-      // Factorise
-      const gcf = randInt(r, 2, 6);
-      let a = randInt(r, 1, 8), b = randInt(r, 1, 8);
-      while (gcd(a, b) !== 1) b = randInt(r, 1, 8);
-      prompt = `Factorise: \\( ${gcf*a}x + ${gcf*b} \\)`;
-      ans = `${gcf}(${a}x + ${b})`;
-      steps = [
-        `Find HCF of ${gcf*a} and ${gcf*b}: HCF = ${gcf}`,
-        `Factor out ${gcf}: \\( ${gcf}(${a}x + ${b}) \\)`
-      ];
-      hints = [
-        'Find a common factor.',
-        `Both ${gcf*a} and ${gcf*b} are divisible by ${gcf}.`,
-        `Take out ${gcf}: ${gcf}(...)`
-      ];
-    } else {
-      // Make subject
-      const a = randInt(r, 2, 9);
-      const b = randInt(r, 1, 15);
-      prompt = `Make x the subject: \\( y = ${a}x + ${b} \\)`;
-      ans = `x = (y - ${b}) / ${a}`;
-      steps = [
-        `Subtract ${b}: \\( y - ${b} = ${a}x \\)`,
-        `Divide by ${a}: \\( x = \\frac{y - ${b}}{${a}} \\)`
-      ];
-      hints = [
-        'Isolate the x term.',
-        `Subtract ${b} from both sides.`,
-        `Then divide both sides by ${a}.`
-      ];
-    }
-    return { prompt, answer: ans, steps, hints, mistakeTypes };
+    const exp = randInt(r, 1, 4);
+    return { prompt: `Solve: \\( 10^x = ${Math.pow(10,exp)} \\)`, answer: String(exp), steps: [`Take log10 of both sides`,`x = log10(${Math.pow(10,exp)}) = ${exp}`], hints: ['Take log of both sides',`log10(10^x)=x`,`x=${exp}`], mistakeTypes: ['log','algebra'] };
   },
-
-  // 10. Simultaneous Equations
-  simultaneous: (seed, diff) => {
+  'exponentials.growth_decay': (seed, diff) => {
     const r = rng(seed);
-    let x, y, a1, b1, a2, b2, c1, c2;
-    let mistakeTypes = ['algebra', 'arithmetic', 'sign'];
-    
-    if (diff === 1) {
-      x = randInt(r, 1, 5);
-      y = randInt(r, 1, 5);
-      a1 = 1; b1 = 1;
-      a2 = randInt(r, 1, 3); b2 = randInt(r, 1, 3);
-    } else if (diff === 2) {
-      x = randInt(r, -3, 5);
-      y = randInt(r, -3, 5);
-      a1 = randInt(r, 1, 3); b1 = randInt(r, 1, 3);
-      a2 = randInt(r, 1, 4); b2 = randInt(r, 1, 4);
-    } else {
-      x = randInt(r, -5, 5);
-      y = randInt(r, -5, 5);
-      a1 = randInt(r, 1, 5); b1 = randInt(r, 1, 5);
-      a2 = randInt(r, 1, 5); b2 = randInt(r, 1, 5);
-    }
-    
-    while (a1 * b2 === a2 * b1) a2 = randInt(r, 1, 5);
-    
-    c1 = a1 * x + b1 * y;
-    c2 = a2 * x + b2 * y;
-    
-    const method = seed % 2 === 0 ? 'substitution' : 'elimination';
-    const prompt = `Solve: \\( ${a1 === 1 ? '' : a1}x ${b1 >= 0 ? '+' : '-'} ${Math.abs(b1) === 1 ? '' : Math.abs(b1)}y = ${c1} \\), \\( ${a2 === 1 ? '' : a2}x ${b2 >= 0 ? '+' : '-'} ${Math.abs(b2) === 1 ? '' : Math.abs(b2)}y = ${c2} \\)`;
-    const ans = `x = ${x}, y = ${y}`;
-    
-    const steps = [
-      `Equation 1: \\( ${a1}x + ${b1}y = ${c1} \\)`,
-      `Equation 2: \\( ${a2}x + ${b2}y = ${c2} \\)`,
-      `Using ${method}: \\( x = ${x} \\), \\( y = ${y} \\)`
-    ];
-    const hints = [
-      `Try the ${method} method.`,
-      method === 'substitution' ? 'Express one variable in terms of the other.' : 'Multiply equations to eliminate a variable.',
-      `x = ${x}. Substitute back to find y.`
-    ];
-    
-    return { prompt, answer: ans, steps, hints, mistakeTypes };
+    const P0 = choice(r, [100,200,500]);
+    const rate = choice(r, [0.1,0.2]);
+    const t = randInt(r, 1, 3);
+    const ansVal = parseFloat((P0*Math.exp(rate*t)).toFixed(2));
+    return { prompt: `P0=${P0}, rate=${rate}/yr. Find P after ${t} years. (P=P0*e^(rt), 2dp)`, answer: String(ansVal), steps: [`P=${P0}*e^(${rate}*${t})`,`=${P0}*e^${rate*t}`,`=${ansVal}`], hints: [`rt=${rate}*${t}=${rate*t}`,`e^${rate*t}=${Math.exp(rate*t).toFixed(4)}`,`*${P0}=${ansVal}`], mistakeTypes: ['formula'] };
   },
-
-  // 11. Quadratics
-  quadratics: (seed, diff) => {
+  'exponentials.half_life': (seed, diff) => {
     const r = rng(seed);
-    let prompt, ans, steps, hints, mistakeTypes = ['algebra', 'sign'];
-    
-    if (diff <= 2) {
-      // Factorisation
-      let p = randInt(r, -6, 6);
-      let q = randInt(r, -6, 6);
-      if (p === 0) p = 1;
-      if (q === 0) q = -1;
-      const b = -(p + q);
-      const c = p * q;
-      const bStr = b >= 0 ? `+ ${b}` : `- ${Math.abs(b)}`;
-      const cStr = c >= 0 ? `+ ${c}` : `- ${Math.abs(c)}`;
-      prompt = `Solve: \\( x^{2} ${bStr}x ${cStr} = 0 \\)`;
-      ans = p === q ? `x = ${p} (repeated)` : `x = ${Math.min(p,q)} or x = ${Math.max(p,q)}`;
-      steps = [
-        `Find two numbers that multiply to ${c} and add to ${b}.`,
-        p === q ? `Both are ${-p}.` : `Those are ${-p} and ${-q}.`,
-        `Factorise: \\( (x ${-p >= 0 ? '+' : '-'} ${Math.abs(p)})(x ${-q >= 0 ? '+' : '-'} ${Math.abs(q)}) = 0 \\)`,
-        `Solutions: x = ${p}, x = ${q}`
-      ];
-      hints = [
-        'Find two numbers with product c and sum b.',
-        `Product = ${c}, Sum = ${b}`,
-        `The numbers are ${-p} and ${-q}.`
-      ];
-    } else {
-      // Quadratic formula
-      const a = choice(r, [1, 2, 3]);
-      let p = randInt(r, -5, 5), q = randInt(r, -5, 5);
-      if (p === 0) p = 1;
-      if (q === 0) q = -1;
-      const bCoeff = -a * (p + q);
-      const cCoeff = a * p * q;
-      const disc = bCoeff * bCoeff - 4 * a * cCoeff;
-      const bStr = bCoeff >= 0 ? `+ ${bCoeff}` : `- ${Math.abs(bCoeff)}`;
-      const cStr = cCoeff >= 0 ? `+ ${cCoeff}` : `- ${Math.abs(cCoeff)}`;
-      prompt = `Use the quadratic formula: \\( ${a}x^{2} ${bStr}x ${cStr} = 0 \\)`;
-      ans = p === q ? `x = ${p} (repeated)` : `x = ${Math.min(p,q)} or x = ${Math.max(p,q)}`;
-      steps = [
-        `a = ${a}, b = ${bCoeff}, c = ${cCoeff}`,
-        `Discriminant: b² - 4ac = ${bCoeff}² - 4(${a})(${cCoeff}) = ${disc}`,
-        `x = \\( \\frac{-b \\pm \\sqrt{${disc}}}{2a} \\)`,
-        `x = ${p} or x = ${q}`
-      ];
-      hints = [
-        'Quadratic formula: x = (-b ± √(b²-4ac)) / 2a',
-        `Here a=${a}, b=${bCoeff}, c=${cCoeff}`,
-        `Discriminant = ${disc}. √${disc} = ${Math.sqrt(disc)}`
-      ];
-      mistakeTypes = ['algebra', 'arithmetic', 'sign'];
-    }
-    return { prompt, answer: ans, steps, hints, mistakeTypes };
+    const hl = choice(r, [2,5,10]);
+    const A0 = choice(r, [100,200,400]);
+    const periods = randInt(r, 1, 3);
+    const t = hl * periods;
+    const ansVal = A0/Math.pow(2,periods);
+    return { prompt: `Half-life ${hl}yrs, start ${A0}g. After ${t}yrs?`, answer: `${ansVal}g`, steps: [`Half-lives: ${t}/${hl}=${periods}`,`Remaining: ${A0}/2^${periods}=${ansVal}g`], hints: [`${t}/${hl}=${periods} half-lives`,`Divide by 2, ${periods} times`,`=${ansVal}g`], mistakeTypes: ['formula'] };
   },
-
-  // 12. Differentiation
-  differentiation: (seed, diff) => {
+  'trigonometry.sohcahtoa': (seed, diff) => {
     const r = rng(seed);
-    let prompt, ans, steps, hints, mistakeTypes = ['algebra', 'arithmetic'];
-    
-    if (diff === 1) {
-      const a = randInt(r, 1, 8);
-      const n = randInt(r, 2, 6);
-      const newCoeff = a * n;
-      const newPow = n - 1;
-      ans = newPow === 1 ? `${newCoeff}x` : `${newCoeff}x^${newPow}`;
-      prompt = `Differentiate: \\( y = ${a}x^{${n}} \\)`;
-      steps = [
-        `Power rule: \\( \\frac{d}{dx}[ax^n] = anx^{n-1} \\)`,
-        `= ${a} × ${n} × x^{${n}-1} = ${newCoeff}x^{${newPow}}`
-      ];
-      hints = [
-        'Power rule: bring down the power, reduce by 1.',
-        `Coefficient: ${a} × ${n} = ${newCoeff}`,
-        `New power: ${n} - 1 = ${newPow}`
-      ];
-    } else {
-      // Sum rule
-      const a1 = randInt(r, 1, 5), n1 = randInt(r, 2, 4);
-      const a2 = randInt(r, 1, 5), n2 = randInt(r, 1, 3);
-      const c = randInt(r, 1, 10);
-      const t1 = n1 - 1 === 1 ? `${a1*n1}x` : `${a1*n1}x^${n1-1}`;
-      const t2 = n2 - 1 === 0 ? `${a2*n2}` : (n2 - 1 === 1 ? `${a2*n2}x` : `${a2*n2}x^${n2-1}`);
-      ans = `${t1} + ${t2}`;
-      prompt = `Differentiate: \\( y = ${a1}x^{${n1}} + ${a2}x^{${n2}} + ${c} \\)`;
-      steps = [
-        'Differentiate each term:',
-        `\\( \\frac{d}{dx}[${a1}x^{${n1}}] = ${a1*n1}x^{${n1-1}} \\)`,
-        `\\( \\frac{d}{dx}[${a2}x^{${n2}}] = ${a2*n2}x^{${n2-1}} \\)`,
-        `\\( \\frac{d}{dx}[${c}] = 0 \\)`,
-        `Result: ${t1} + ${t2}`
-      ];
-      hints = [
-        'Differentiate each term separately.',
-        `First: ${a1} × ${n1} = ${a1*n1}, power ${n1-1}`,
-        `Second: ${a2} × ${n2} = ${a2*n2}, power ${n2-1}. Constants → 0.`
-      ];
-    }
-    return { prompt, answer: ans, steps, hints, mistakeTypes };
+    const opp = randInt(r, 3, 12), hyp = randInt(r, opp+1, 20);
+    const angle = parseFloat((Math.asin(opp/hyp)*180/Math.PI).toFixed(1));
+    return { prompt: `Right triangle: opp=${opp}, hyp=${hyp}. Find angle (1dp)`, answer: `${angle}`, steps: [`sin(theta)=opp/hyp=${opp}/${hyp}`,`theta=arcsin(${(opp/hyp).toFixed(4)})`,`=${angle} degrees`], hints: ['SOH: sin=O/H',`sin=${opp}/${hyp}`,`arcsin to find angle`], mistakeTypes: ['trig'] };
   },
-
-  // 13. Stationary Points
-  stationary_points: (seed, diff) => {
+  'trigonometry.special_angles': (seed, diff) => {
     const r = rng(seed);
-    let mistakeTypes = ['algebra', 'arithmetic', 'sign'];
-    
-    const a = choice(r, diff === 1 ? [1] : diff === 2 ? [1, 2] : [1, 2, 3]);
-    let b = randInt(r, 2, 8) * (choice(r, [1, -1]));
-    if (b === 0) b = 2;
-    const c = randInt(r, -10, 10);
-    
-    const xStat = -b / (2 * a);
-    const yStatVal = a * xStat * xStat + b * xStat + c;
-    const yStat = parseFloat(yStatVal.toFixed(4));
-    
+    const angles = {30:{sin:'1/2',cos:'sqrt3/2',tan:'1/sqrt3'},45:{sin:'sqrt2/2',cos:'sqrt2/2',tan:'1'},60:{sin:'sqrt3/2',cos:'1/2',tan:'sqrt3'}};
+    const ang = choice(r, [30,45,60]);
+    const func = choice(r, ['sin','cos','tan']);
+    return { prompt: `What is ${func}(${ang} degrees)? Exact value.`, answer: angles[ang][func], steps: [`Standard special angle`,`${func}(${ang})=${angles[ang][func]}`], hints: ['Memorize 30,45,60 values',`Think about ${func} at ${ang}`,`=${angles[ang][func]}`], mistakeTypes: ['trig'] };
+  },
+  'trigonometry.sine_cosine_rule': (seed, diff) => {
+    const r = rng(seed);
+    const A = randInt(r, 30, 70), B = randInt(r, 30, 100);
+    const a = randInt(r, 5, 15);
+    const sinA = Math.sin(A*Math.PI/180), sinB = Math.sin(B*Math.PI/180);
+    const b = parseFloat((a*sinB/sinA).toFixed(2));
+    return { prompt: `Triangle: A=${A}deg, B=${B}deg, a=${a}. Find b (2dp)`, answer: String(b), steps: [`Sine rule: a/sinA=b/sinB`,`b=a*sinB/sinA`,`=${a}*${sinB.toFixed(4)}/${sinA.toFixed(4)}=${b}`], hints: ['Use sine rule',`b=a*sin(B)/sin(A)`,`Calculate sines and divide`], mistakeTypes: ['trig','formula'] };
+  },
+  'vectors.add_sub': (seed, diff) => {
+    const r = rng(seed);
+    const ax = randInt(r, -5, 5), ay = randInt(r, -5, 5);
+    const bx = randInt(r, -5, 5), by = randInt(r, -5, 5);
+    const op = choice(r, ['+', '-']);
+    const rx = op==='+' ? ax+bx : ax-bx;
+    const ry = op==='+' ? ay+by : ay-by;
+    return { prompt: `Calculate: (${ax},${ay}) ${op} (${bx},${by})`, answer: `(${rx}, ${ry})`, steps: [`x: ${ax}${op}${bx}=${rx}`,`y: ${ay}${op}${by}=${ry}`,`=(${rx},${ry})`], hints: [`${op==='+'?'Add':'Subtract'} components`,`x: ${ax}${op}${bx}=${rx}`,`y: ${ay}${op}${by}=${ry}`], mistakeTypes: ['arithmetic'] };
+  },
+  'vectors.components': (seed, diff) => {
+    const r = rng(seed);
+    const mag = randInt(r, 5, 15);
+    const angle = choice(r, [30, 45, 60]);
+    const x = parseFloat((mag*Math.cos(angle*Math.PI/180)).toFixed(2));
+    const y = parseFloat((mag*Math.sin(angle*Math.PI/180)).toFixed(2));
+    return { prompt: `Vector: magnitude=${mag}, direction=${angle}deg. Components? (2dp)`, answer: `(${x}, ${y})`, steps: [`x=r*cos(theta)=${mag}*cos(${angle})=${x}`,`y=r*sin(theta)=${mag}*sin(${angle})=${y}`], hints: ['x=r*cos, y=r*sin',`cos(${angle})=${Math.cos(angle*Math.PI/180).toFixed(4)}`,`sin(${angle})=${Math.sin(angle*Math.PI/180).toFixed(4)}`], mistakeTypes: ['trig'] };
+  },
+  'algebra.collect_terms': (seed, diff) => {
+    const r = rng(seed);
+    const a = randInt(r, 1, 9), b = randInt(r, 1, 9), c = randInt(r, 1, 9), d = randInt(r, 1, 9);
+    return { prompt: `Simplify: ${a}x + ${b} + ${c}x + ${d}`, answer: `${a+c}x + ${b+d}`, steps: [`x terms: ${a}x+${c}x=${a+c}x`,`Constants: ${b}+${d}=${b+d}`,`=${a+c}x + ${b+d}`], hints: ['Group like terms',`${a}+${c}=${a+c}x`,`${b}+${d}=${b+d}`], mistakeTypes: ['algebra'] };
+  },
+  'algebra.expand': (seed, diff) => {
+    const r = rng(seed);
+    const a = randInt(r, 2, 8), b = randInt(r, 1, 9), c = randInt(r, 1, 9);
+    return { prompt: `Expand: ${a}(${b}x + ${c})`, answer: `${a*b}x + ${a*c}`, steps: [`${a}*${b}x=${a*b}x`,`${a}*${c}=${a*c}`,`=${a*b}x + ${a*c}`], hints: ['Multiply each term by factor',`${a}*${b}=${a*b}`,`${a}*${c}=${a*c}`], mistakeTypes: ['algebra'] };
+  },
+  'algebra.factor': (seed, diff) => {
+    const r = rng(seed);
+    const gcf = randInt(r, 2, 6);
+    let a = randInt(r, 1, 8), b = randInt(r, 1, 8);
+    while (gcd(a,b) !== 1) b = randInt(r, 1, 8);
+    return { prompt: `Factorise: ${gcf*a}x + ${gcf*b}`, answer: `${gcf}(${a}x + ${b})`, steps: [`HCF of ${gcf*a} and ${gcf*b} is ${gcf}`,`Factor out: ${gcf}(${a}x + ${b})`], hints: ['Find common factor',`Both divisible by ${gcf}`,`Take out ${gcf}`], mistakeTypes: ['algebra'] };
+  },
+  'algebra.make_subject': (seed, diff) => {
+    const r = rng(seed);
+    const a = randInt(r, 2, 9), b = randInt(r, 1, 15);
+    return { prompt: `Make x subject: y = ${a}x + ${b}`, answer: `x = (y - ${b}) / ${a}`, steps: [`Subtract ${b}: y-${b}=${a}x`,`Divide by ${a}: x=(y-${b})/${a}`], hints: ['Isolate x term',`Subtract ${b}`,`Divide by ${a}`], mistakeTypes: ['algebra'] };
+  },
+  'simultaneous.substitution': (seed, diff) => {
+    const r = rng(seed);
+    const x = randInt(r, 1, 5), y = randInt(r, 1, 5);
+    const b1 = randInt(r, 1, 3);
+    const c1 = x + b1*y;
+    const a2 = randInt(r, 1, 3), b2 = randInt(r, 1, 3);
+    const c2 = a2*x + b2*y;
+    return { prompt: `Solve: x + ${b1}y = ${c1}, ${a2}x + ${b2}y = ${c2}`, answer: `x = ${x}, y = ${y}`, steps: [`From eq1: x = ${c1} - ${b1}y`,`Substitute into eq2`,`Solve: y=${y}, then x=${x}`], hints: ['Express x from eq1',`x = ${c1} - ${b1}y`,`Substitute and solve`], mistakeTypes: ['algebra'] };
+  },
+  'simultaneous.elimination': (seed, diff) => {
+    const r = rng(seed);
+    const x = randInt(r, 1, 5), y = randInt(r, 1, 5);
+    const a1 = randInt(r, 1, 3), b1 = randInt(r, 1, 3);
+    let a2 = randInt(r, 1, 4), b2 = randInt(r, 1, 4);
+    while (a1*b2 === a2*b1) a2++;
+    const c1 = a1*x + b1*y, c2 = a2*x + b2*y;
+    return { prompt: `Solve: ${a1}x + ${b1}y = ${c1}, ${a2}x + ${b2}y = ${c2}`, answer: `x = ${x}, y = ${y}`, steps: [`Multiply to match coefficients`,`Add/subtract to eliminate`,`x=${x}, y=${y}`], hints: ['Make one coefficient same',`Add or subtract equations`,`Solve for remaining`], mistakeTypes: ['algebra'] };
+  },
+  'quadratics.factorisation': (seed, diff) => {
+    const r = rng(seed);
+    let p = randInt(r, -5, 5), q = randInt(r, -5, 5);
+    if (p === 0) p = 1; if (q === 0) q = -1;
+    const b = -(p+q), c = p*q;
     const bStr = b >= 0 ? `+ ${b}` : `- ${Math.abs(b)}`;
     const cStr = c >= 0 ? `+ ${c}` : `- ${Math.abs(c)}`;
+    return { prompt: `Solve: x^2 ${bStr}x ${cStr} = 0`, answer: `x = ${Math.min(p,q)} or x = ${Math.max(p,q)}`, steps: [`Find numbers with product ${c} and sum ${b}`,`Those are ${-p} and ${-q}`,`x=${p} or x=${q}`], hints: ['Product = c, sum = b',`${-p} and ${-q}`,`Solutions: ${p}, ${q}`], mistakeTypes: ['algebra'] };
+  },
+  'quadratics.formula': (seed, diff) => {
+    const r = rng(seed);
+    let p = randInt(r, -4, 4), q = randInt(r, -4, 4);
+    if (p === 0) p = 1; if (q === 0) q = -1;
+    const b = -(p+q), c = p*q;
+    const disc = b*b - 4*c;
+    return { prompt: `Use formula: x^2 ${b>=0?'+':'-'} ${Math.abs(b)}x ${c>=0?'+':'-'} ${Math.abs(c)} = 0`, answer: `x = ${Math.min(p,q)} or x = ${Math.max(p,q)}`, steps: [`a=1, b=${b}, c=${c}`,`Discriminant = ${disc}`,`x = (-${b} +/- sqrt(${disc}))/2`,`x=${p} or x=${q}`], hints: ['x = (-b +/- sqrt(b^2-4ac))/2a',`Discriminant = ${disc}`,`sqrt(${disc}) = ${Math.sqrt(disc)}`], mistakeTypes: ['algebra'] };
+  },
+  'differentiation.power_rule': (seed, diff) => {
+    const r = rng(seed);
+    const a = randInt(r, 1, 8), n = randInt(r, 2, 6);
+    const newCoeff = a*n, newPow = n-1;
+    const ans = newPow === 1 ? `${newCoeff}x` : newPow === 0 ? `${newCoeff}` : `${newCoeff}x^${newPow}`;
+    return { prompt: `Differentiate: y = ${a}x^${n}`, answer: ans, steps: [`Power rule: bring down power, reduce by 1`,`${a}*${n}=${newCoeff}`,`Power: ${n}-1=${newPow}`], hints: ['Multiply by power',`${a}*${n}=${newCoeff}`,`New power = ${newPow}`], mistakeTypes: ['algebra'] };
+  },
+  'differentiation.constant_multiple': (seed, diff) => {
+    const r = rng(seed);
+    const k = randInt(r, 2, 5), a = randInt(r, 1, 4), n = randInt(r, 2, 4);
+    const coeff = k*a*n, newPow = n-1;
+    const ans = newPow === 1 ? `${coeff}x` : `${coeff}x^${newPow}`;
+    return { prompt: `Differentiate: y = ${k}*${a}x^${n}`, answer: ans, steps: [`Simplify: ${k*a}x^${n}`,`Differentiate: ${k*a}*${n}x^${n-1}`,`= ${coeff}x^${newPow}`], hints: ['Constants multiply through',`${k}*${a}=${k*a}`,`Then power rule`], mistakeTypes: ['algebra'] };
+  },
+  'differentiation.sum_rule': (seed, diff) => {
+    const r = rng(seed);
+    const a1 = randInt(r, 1, 5), n1 = randInt(r, 2, 4);
+    const a2 = randInt(r, 1, 5), n2 = randInt(r, 1, 3);
+    const c = randInt(r, 1, 10);
+    const t1 = n1-1===1 ? `${a1*n1}x` : `${a1*n1}x^${n1-1}`;
+    const t2 = n2-1===0 ? `${a2*n2}` : n2-1===1 ? `${a2*n2}x` : `${a2*n2}x^${n2-1}`;
+    return { prompt: `Differentiate: y = ${a1}x^${n1} + ${a2}x^${n2} + ${c}`, answer: `${t1} + ${t2}`, steps: [`d/dx[${a1}x^${n1}] = ${a1*n1}x^${n1-1}`,`d/dx[${a2}x^${n2}] = ${a2*n2}x^${n2-1}`,`d/dx[${c}] = 0`], hints: ['Differentiate each term',`${a1}*${n1}=${a1*n1}`,`Constants -> 0`], mistakeTypes: ['algebra'] };
+  },
+  'stationary_points.find': (seed, diff) => {
+    const r = rng(seed);
+    const a = 1;
+    let b = randInt(r, 2, 8) * choice(r, [1,-1]);
+    const c = randInt(r, -10, 10);
+    const xStat = -b/(2*a);
+    const yStat = a*xStat*xStat + b*xStat + c;
+    return { prompt: `Find stationary point: y = x^2 ${b>=0?'+':'-'} ${Math.abs(b)}x ${c>=0?'+':'-'} ${Math.abs(c)}`, answer: `x = ${xStat}, y = ${yStat}`, steps: [`dy/dx = 2x ${b>=0?'+':'-'} ${Math.abs(b)}`,`Set = 0: x = ${xStat}`,`y = ${yStat}`], hints: ['Differentiate',`Set dy/dx = 0`,`Find y by substituting x`], mistakeTypes: ['algebra'] };
+  },
+  'stationary_points.classify': (seed, diff) => {
+    const r = rng(seed);
+    const a = choice(r, [1, -1]);
     const classification = a > 0 ? 'minimum' : 'maximum';
-    
-    const prompt = `Find the stationary point of \\( y = ${a === 1 ? '' : a}x^{2} ${bStr}x ${cStr} \\)`;
-    const xAns = xStat % 1 === 0 ? xStat : parseFloat(xStat.toFixed(2));
-    const yAns = yStat % 1 === 0 ? yStat : parseFloat(yStat.toFixed(2));
-    const ans = `x = ${xAns}, y = ${yAns}`;
-    
-    const steps = [
-      `\\( \\frac{dy}{dx} = ${2*a}x ${bStr} \\)`,
-      `Set \\( \\frac{dy}{dx} = 0 \\): ${2*a}x ${bStr} = 0`,
-      `x = ${xAns}`,
-      `y = ${a}(${xAns})² ${bStr}(${xAns}) ${cStr} = ${yAns}`,
-      `Since d²y/dx² = ${2*a} ${a > 0 ? '> 0' : '< 0'}, this is a ${classification}.`
-    ];
-    const hints = [
-      'Differentiate and set dy/dx = 0.',
-      `dy/dx = ${2*a}x ${bStr}. Set to zero.`,
-      `x = ${xAns}. Substitute back to find y.`
-    ];
-    
-    return { prompt, answer: ans, steps, hints, mistakeTypes };
+    return { prompt: `For y = ${a===1?'':'- '}x^2 + 3x + 2, classify the stationary point`, answer: classification, steps: [`dy/dx = ${2*a}x + 3`,`d2y/dx2 = ${2*a}`,`${2*a} ${a>0?'>':'<'} 0, so ${classification}`], hints: ['Find second derivative',`d2y/dx2 = ${2*a}`,`Positive=min, Negative=max`], mistakeTypes: ['algebra'] };
   },
-
-  // 14. Integration
-  integration: (seed, diff) => {
+  'integration.power_rule': (seed, diff) => {
     const r = rng(seed);
-    let prompt, ans, steps, hints, mistakeTypes = ['algebra', 'arithmetic'];
-    
-    if (diff === 1) {
-      const a = randInt(r, 1, 8);
-      const n = randInt(r, 1, 5);
-      const newPow = n + 1;
-      const sf = simplifyFrac(a, newPow);
-      const coeffStr = sf.den === 1 ? String(sf.num) : `${sf.num}/${sf.den}`;
-      ans = `${coeffStr}x^${newPow} + C`;
-      prompt = `Integrate: \\( \\int ${a}x^{${n}} \\, dx \\)`;
-      steps = [
-        `\\( \\int ax^n \\, dx = \\frac{a}{n+1} x^{n+1} + C \\)`,
-        `= \\( \\frac{${a}}{${newPow}} x^{${newPow}} + C \\)`,
-        `= \\( ${coeffStr} x^{${newPow}} + C \\)`
-      ];
-      hints = [
-        'Add 1 to power, divide by new power.',
-        `New power: ${n} + 1 = ${newPow}`,
-        `Coefficient: ${a} ÷ ${newPow}`
-      ];
-    } else {
-      // Sum rule
-      const a1 = randInt(r, 1, 4), n1 = randInt(r, 1, 3);
-      const a2 = randInt(r, 1, 4), n2 = randInt(r, 1, 3);
-      const sf1 = simplifyFrac(a1, n1 + 1);
-      const sf2 = simplifyFrac(a2, n2 + 1);
-      const c1 = sf1.den === 1 ? String(sf1.num) : `${sf1.num}/${sf1.den}`;
-      const c2 = sf2.den === 1 ? String(sf2.num) : `${sf2.num}/${sf2.den}`;
-      ans = `${c1}x^${n1+1} + ${c2}x^${n2+1} + C`;
-      prompt = `Integrate: \\( \\int (${a1}x^{${n1}} + ${a2}x^{${n2}}) \\, dx \\)`;
-      steps = [
-        'Integrate each term:',
-        `\\( \\int ${a1}x^{${n1}} dx = ${c1}x^{${n1+1}} \\)`,
-        `\\( \\int ${a2}x^{${n2}} dx = ${c2}x^{${n2+1}} \\)`,
-        `Result: ${c1}x^{${n1+1}} + ${c2}x^{${n2+1}} + C`
-      ];
-      hints = [
-        'Integrate each term separately, add C.',
-        `For ${a1}x^${n1}: new power = ${n1+1}, coeff = ${a1}/${n1+1}`,
-        `For ${a2}x^${n2}: new power = ${n2+1}, coeff = ${a2}/${n2+1}`
-      ];
-    }
-    return { prompt, answer: ans, steps, hints, mistakeTypes };
+    const a = randInt(r, 1, 8), n = randInt(r, 1, 5);
+    const newPow = n+1;
+    const sf = simplifyFrac(a, newPow);
+    const coeffStr = sf.den === 1 ? String(sf.num) : `${sf.num}/${sf.den}`;
+    return { prompt: `Integrate: ${a}x^${n} dx`, answer: `${coeffStr}x^${newPow} + C`, steps: [`Add 1 to power: ${newPow}`,`Divide by new power: ${a}/${newPow}`,`= ${coeffStr}x^${newPow} + C`], hints: ['Add 1 to power',`New power = ${newPow}`,`Divide coefficient by ${newPow}`], mistakeTypes: ['algebra'] };
   },
-
-  // 15. Units & Prefixes
-  units: (seed, diff) => {
+  'integration.constant_multiple': (seed, diff) => {
     const r = rng(seed);
-    let prompt, ans, steps, hints, mistakeTypes = ['units'];
-    
-    const prefixes = [
-      { name: 'pico', sym: 'p', exp: -12 },
-      { name: 'nano', sym: 'n', exp: -9 },
-      { name: 'micro', sym: 'μ', exp: -6 },
-      { name: 'milli', sym: 'm', exp: -3 },
-      { name: 'kilo', sym: 'k', exp: 3 },
-      { name: 'mega', sym: 'M', exp: 6 },
-      { name: 'giga', sym: 'G', exp: 9 },
-    ];
-    
-    if (diff === 1) {
-      const p = choice(r, prefixes);
-      prompt = `What power of 10 does '${p.name}' (${p.sym}) represent?`;
-      ans = `10^${p.exp}`;
-      steps = [
-        `The prefix '${p.name}' means × ${Math.pow(10, p.exp)}`,
-        `In scientific notation: 10^{${p.exp}}`
-      ];
-      hints = [
-        'Engineering prefixes are powers of 10.',
-        `'${p.name}' is for ${p.exp > 0 ? 'large' : 'small'} numbers.`,
-        `It represents ${Math.pow(10, p.exp)}`
-      ];
-    } else if (diff === 2) {
-      const fromP = choice(r, prefixes);
-      let toP = choice(r, prefixes);
-      while (toP.exp === fromP.exp) toP = choice(r, prefixes);
-      const val = randInt(r, 1, 999);
-      const result = val * Math.pow(10, fromP.exp - toP.exp);
-      ans = `${result.toExponential(3)} ${toP.sym}V`;
-      prompt = `Convert ${val} ${fromP.sym}V to ${toP.sym}V`;
-      steps = [
-        `${val} ${fromP.sym}V = ${val} × 10^{${fromP.exp}} V`,
-        `= ${val * Math.pow(10, fromP.exp)} V`,
-        `= ${result.toExponential(3)} ${toP.sym}V`
-      ];
-      hints = [
-        'Convert to base units first.',
-        `${fromP.sym} = 10^{${fromP.exp}}, ${toP.sym} = 10^{${toP.exp}}`,
-        `In base: ${val * Math.pow(10, fromP.exp)} V`
-      ];
-      mistakeTypes = ['units', 'arithmetic'];
-    } else {
-      const val = randInt(r, 1, 999) * Math.pow(10, randInt(r, -6, 6));
-      const exp = Math.floor(Math.log10(Math.abs(val)));
-      const engExp = Math.floor(exp / 3) * 3;
-      const mantissa = parseFloat((val / Math.pow(10, engExp)).toPrecision(4));
-      ans = `${mantissa} × 10^${engExp}`;
-      prompt = `Express ${val.toExponential(3)} in engineering notation`;
-      steps = [
-        `Scientific: ${val.toExponential(3)}`,
-        `Exponent ${exp} → nearest multiple of 3: ${engExp}`,
-        `Mantissa: ${mantissa}`,
-        `Result: ${mantissa} × 10^{${engExp}}`
-      ];
-      hints = [
-        'Engineering notation: exponent is multiple of 3.',
-        `Current exponent ≈ ${exp}`,
-        `Nearest lower multiple of 3 is ${engExp}`
-      ];
-      mistakeTypes = ['units', 'arithmetic'];
-    }
-    return { prompt, answer: ans, steps, hints, mistakeTypes };
+    const k = randInt(r, 2, 5), a = randInt(r, 1, 4), n = randInt(r, 1, 4);
+    const newPow = n+1;
+    const sf = simplifyFrac(k*a, newPow);
+    const coeffStr = sf.den === 1 ? String(sf.num) : `${sf.num}/${sf.den}`;
+    return { prompt: `Integrate: ${k}*${a}x^${n} dx`, answer: `${coeffStr}x^${newPow} + C`, steps: [`Simplify: ${k*a}x^${n}`,`Integrate: ${k*a}/${newPow}x^${newPow}`,`= ${coeffStr}x^${newPow} + C`], hints: [`${k}*${a}=${k*a}`,`New power = ${newPow}`,`Divide by ${newPow}`], mistakeTypes: ['algebra'] };
+  },
+  'integration.sum_rule': (seed, diff) => {
+    const r = rng(seed);
+    const a1 = randInt(r, 1, 4), n1 = randInt(r, 1, 3);
+    const a2 = randInt(r, 1, 4), n2 = randInt(r, 1, 3);
+    const sf1 = simplifyFrac(a1, n1+1), sf2 = simplifyFrac(a2, n2+1);
+    const c1 = sf1.den===1 ? String(sf1.num) : `${sf1.num}/${sf1.den}`;
+    const c2 = sf2.den===1 ? String(sf2.num) : `${sf2.num}/${sf2.den}`;
+    return { prompt: `Integrate: (${a1}x^${n1} + ${a2}x^${n2}) dx`, answer: `${c1}x^${n1+1} + ${c2}x^${n2+1} + C`, steps: [`int ${a1}x^${n1} = ${c1}x^${n1+1}`,`int ${a2}x^${n2} = ${c2}x^${n2+1}`,`Add C`], hints: ['Integrate each term',`Powers become ${n1+1} and ${n2+1}`,`Don't forget + C`], mistakeTypes: ['algebra'] };
+  },
+  'units.si': (seed, diff) => {
+    const r = rng(seed);
+    const units = [{name:'length',si:'metre',sym:'m'},{name:'mass',si:'kilogram',sym:'kg'},{name:'time',si:'second',sym:'s'},{name:'current',si:'ampere',sym:'A'}];
+    const u = choice(r, units);
+    return { prompt: `SI unit for ${u.name}? (name and symbol)`, answer: `${u.si} (${u.sym})`, steps: [`${u.name} is measured in ${u.si}`,`Symbol: ${u.sym}`], hints: ['Think SI base units',`${u.name} -> ${u.si}`,`Symbol: ${u.sym}`], mistakeTypes: ['units'] };
+  },
+  'units.prefixes': (seed, diff) => {
+    const r = rng(seed);
+    const prefixes = [{name:'pico',sym:'p',exp:-12},{name:'nano',sym:'n',exp:-9},{name:'micro',sym:'u',exp:-6},{name:'milli',sym:'m',exp:-3},{name:'kilo',sym:'k',exp:3},{name:'mega',sym:'M',exp:6},{name:'giga',sym:'G',exp:9}];
+    const p = choice(r, prefixes);
+    return { prompt: `What power of 10 is '${p.name}' (${p.sym})?`, answer: `10^${p.exp}`, steps: [`${p.name} = 10^${p.exp}`], hints: ['Engineering prefix',`${p.name} is for ${p.exp>0?'large':'small'} numbers`,`= 10^${p.exp}`], mistakeTypes: ['units'] };
+  },
+  'units.conversions': (seed, diff) => {
+    const r = rng(seed);
+    const val = randInt(r, 1, 999);
+    const fromP = {name:'milli',sym:'m',exp:-3};
+    const toP = {name:'micro',sym:'u',exp:-6};
+    const result = val * Math.pow(10, fromP.exp - toP.exp);
+    return { prompt: `Convert ${val} mV to uV`, answer: `${result} uV`, steps: [`milli = 10^-3, micro = 10^-6`,`${val} mV = ${val} x 10^-3 V`,`= ${result} x 10^-6 V = ${result} uV`], hints: ['Convert via base unit',`mV to V to uV`,`x1000`], mistakeTypes: ['units'] };
   }
 };
 
-// ============================================================================
-// QUESTION GENERATION
-// ============================================================================
+function getGeneratorForTopic(topicId) {
+  if (generators[topicId]) return generators[topicId];
+  const topic = TOPICS.find(t => t.id === topicId);
+  if (topic && topic.children && topic.children.length > 0) {
+    return (seed, diff) => {
+      const r = rng(seed);
+      const child = choice(r, topic.children);
+      return generators[child.id] ? generators[child.id](seed, diff) : null;
+    };
+  }
+  return null;
+}
 
 function generateQuestion(topicId, difficulty = 1) {
   const seed = Date.now() + Math.floor(Math.random() * 10000);
-  const gen = generators[topicId];
+  const gen = getGeneratorForTopic(topicId);
   if (!gen) return null;
   const q = gen(seed, difficulty);
-  q.topicId = topicId;
-  q.seed = seed;
-  q.difficulty = difficulty;
+  if (!q) return null;
+  q.topicId = topicId; q.seed = seed; q.difficulty = difficulty;
   return q;
 }
 
-// ============================================================================
-// ANSWER CHECKING
-// ============================================================================
-
 function normalizeAnswer(str) {
-  return str.toLowerCase()
-    .replace(/\s+/g, '')
-    .replace(/×/g, '*')
-    .replace(/÷/g, '/')
-    .replace(/√/g, 'sqrt')
-    .replace(/\^/g, '^')
-    .replace(/°/g, '')
-    .replace(/g$/i, '');
+  return str.toLowerCase().replace(/\s+/g,'').replace(/[×]/g,'*').replace(/[÷]/g,'/').replace(/√/g,'sqrt').replace(/\^/g,'^').replace(/°/g,'').replace(/g$/i,'');
 }
 
 function checkAnswer(given, expected) {
-  const normGiven = normalizeAnswer(given);
-  const normExpected = normalizeAnswer(expected);
-  
-  // Exact match
+  const normGiven = normalizeAnswer(given), normExpected = normalizeAnswer(expected);
   if (normGiven === normExpected) return true;
-  
-  // Handle "x = a or x = b" format
   if (normExpected.includes('or')) {
-    const parts = normExpected.split('or').map(p => p.replace(/x=/g, '').trim());
-    const givenParts = normGiven.replace(/x=/g, '').split(/or|,/).map(p => p.trim());
-    if (parts.length === givenParts.length) {
-      parts.sort();
-      givenParts.sort();
-      if (parts.every((p, i) => p === givenParts[i])) return true;
-    }
+    const parts = normExpected.split('or').map(p=>p.replace(/x=/g,'').trim());
+    const givenParts = normGiven.replace(/x=/g,'').split(/or|,/).map(p=>p.trim());
+    if (parts.length === givenParts.length) { parts.sort(); givenParts.sort(); if (parts.every((p,i)=>p===givenParts[i])) return true; }
   }
-  
-  // Handle "x = a, y = b" format
   if (normExpected.includes(',') && normExpected.includes('=')) {
-    const expPairs = normExpected.split(',').map(p => p.trim());
-    const givPairs = normGiven.split(',').map(p => p.trim());
-    if (expPairs.length === givPairs.length) {
-      if (expPairs.every((ep, i) => ep === givPairs[i])) return true;
-      // Also try without variable names
-      const expVals = expPairs.map(p => p.split('=')[1]).sort();
-      const givVals = givPairs.map(p => p.includes('=') ? p.split('=')[1] : p).sort();
-      if (expVals.every((v, i) => v === givVals[i])) return true;
-    }
+    const expPairs = normExpected.split(',').map(p=>p.trim());
+    const givPairs = normGiven.split(',').map(p=>p.trim());
+    if (expPairs.length === givPairs.length && expPairs.every((ep,i)=>ep===givPairs[i])) return true;
   }
-  
-  // Numeric comparison
+  if (normExpected==='minimum'||normExpected==='maximum') {
+    if (normGiven.includes('min') && normExpected==='minimum') return true;
+    if (normGiven.includes('max') && normExpected==='maximum') return true;
+  }
   try {
-    const numGiven = parseFloat(normGiven.replace(/[^0-9.-]/g, ''));
-    const numExpected = parseFloat(normExpected.replace(/[^0-9.-]/g, ''));
-    if (!isNaN(numGiven) && !isNaN(numExpected)) {
-      if (Math.abs(numGiven - numExpected) < 0.1) return true;
-      // Percentage tolerance
-      if (Math.abs(numGiven - numExpected) / Math.max(Math.abs(numExpected), 1) < 0.02) return true;
-    }
+    const numGiven = parseFloat(normGiven.replace(/[^0-9.-]/g,''));
+    const numExpected = parseFloat(normExpected.replace(/[^0-9.-]/g,''));
+    if (!isNaN(numGiven) && !isNaN(numExpected) && Math.abs(numGiven-numExpected) < 0.15) return true;
   } catch {}
-  
-  // Fraction comparison
   try {
     if (normGiven.includes('/') && normExpected.includes('/')) {
-      const [gn, gd] = normGiven.split('/').map(Number);
-      const [en, ed] = normExpected.split('/').map(Number);
-      if (gn / gd === en / ed) return true;
+      const [gn,gd] = normGiven.split('/').map(Number);
+      const [en,ed] = normExpected.split('/').map(Number);
+      if (gn/gd === en/ed) return true;
     }
   } catch {}
-  
   return false;
 }
 
-// ============================================================================
-// RENDERING
-// ============================================================================
-
 function render() {
   const app = document.getElementById('app');
-  
   switch (state.page) {
     case 'topics': app.innerHTML = renderTopics(); break;
     case 'practice': app.innerHTML = renderPractice(); break;
@@ -1311,678 +767,190 @@ function render() {
     case 'stats': app.innerHTML = renderStats(); break;
     default: app.innerHTML = renderTopics();
   }
-  
-  // Update nav
   document.querySelectorAll('.nav-btn').forEach(btn => {
     const page = btn.getAttribute('data-page');
-    btn.classList.toggle('active', state.page.startsWith(page) || (page === 'topics' && (state.page === 'practice' || state.page === 'learn')));
+    btn.classList.toggle('active', state.page.startsWith(page) || (page==='topics' && (state.page==='practice'||state.page==='learn')));
   });
-  
-  // Update review badge
   const badge = document.getElementById('review-badge');
   const due = getDueCount();
-  if (badge) {
-    badge.innerHTML = due > 0 ? `<span class="badge">${due}</span>` : '';
-  }
-  
-  // Render math
-  setTimeout(() => {
-    if (typeof renderMathInElement !== 'undefined') {
-      renderMathInElement(app, {
-        delimiters: [
-          {left: '\\(', right: '\\)', display: false},
-          {left: '\\[', right: '\\]', display: true},
-        ],
-        throwOnError: false
-      });
-    }
-  }, 50);
+  if (badge) badge.innerHTML = due > 0 ? `<span class="badge">${due}</span>` : '';
+  setTimeout(() => { if (typeof renderMathInElement !== 'undefined') renderMathInElement(app, {delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true}],throwOnError:false}); }, 50);
 }
 
 function renderTopics() {
-  const mastered = TOPICS.filter(t => getTopicMastery(t.id).isMastered).length;
+  const totalMastered = ALL_SUBTOPICS.filter(t => getTopicMastery(t.id).isMastered).length;
   const due = getDueCount();
-  
-  return `
-    <h1>📐 Math Tutor</h1>
-    <p style="color:var(--text2); margin-bottom:16px;">T192/T193 Engineering Mathematics</p>
-    
-    <div class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <span><strong>🏆 Progress</strong></span>
-        <span style="color:var(--accent);">${mastered}/${TOPICS.length} mastered</span>
-      </div>
-      <div class="progress-bar">
-        <div class="progress-fill" style="width:${Math.round(100*mastered/TOPICS.length)}%; background:var(--success);"></div>
-      </div>
-      ${due > 0 ? `<p style="margin-top:8px; color:var(--warning);">⏰ ${due} card${due !== 1 ? 's' : ''} due for review</p>` : ''}
-    </div>
-    
-    <h2>Topics</h2>
-    <ul class="topic-list">
-      ${TOPICS.map(t => {
+  state.expandedTopics = loadExpandedState();
+  return `<h1>Math Tutor</h1><p style="color:var(--text2);margin-bottom:16px;">T192/T193 Engineering Mathematics</p>
+    <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;"><span><strong>Progress</strong></span><span style="color:var(--accent);">${totalMastered}/${ALL_SUBTOPICS.length} mastered</span></div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${Math.round(100*totalMastered/ALL_SUBTOPICS.length)}%;background:var(--success);"></div></div>
+    ${due > 0 ? `<p style="margin-top:8px;color:var(--warning);">${due} cards due for review</p>` : ''}</div>
+    <h2>Topics</h2><div class="topic-list">${TOPICS.map(t => {
+      if (t.children && t.children.length > 0) {
+        const pm = getParentMastery(t.id);
+        const isExpanded = state.expandedTopics[t.id] || false;
+        return `<div class="topic-header ${isExpanded?'expanded':''}" onclick="toggleTopic('${t.id}')" style="${pm.isMastered?'border-left:4px solid var(--success);':''}">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div><span class="expand-icon ${isExpanded?'expanded':''}">&#9654;</span><span>${t.icon} ${t.name}</span>${pm.isMastered?'<span style="color:var(--success);"> &#10003;</span>':''}<span class="badge-sm">${pm.masteredCount}/${pm.childCount}</span></div>
+          </div></div>
+          <div class="subtopic-list ${isExpanded?'':'hidden'}">${t.children.map(c => {
+            const cm = getTopicMastery(c.id);
+            return `<div class="subtopic-item ${cm.isMastered?'mastered':''}" onclick="event.stopPropagation();">
+              <div onclick="showLearn('${c.id}')" style="flex:1;cursor:pointer;"><span>${c.name}</span>${cm.isMastered?'<span style="color:var(--success);"> &#10003;</span>':''}
+              ${!cm.isMastered && cm.progress > 0 ? `<div class="progress-bar" style="width:80px;height:4px;margin-top:4px;"><div class="progress-fill" style="width:${cm.progress}%;background:${cm.accuracy>=80?'var(--accent)':'var(--warning)'};"></div></div>` : ''}
+              <span style="color:var(--text2);font-size:0.8rem;display:block;">${cm.total > 0 ? `${cm.correct}/${cm.total} (${cm.accuracy}%)` : 'Not started'}</span></div>
+              <button class="btn btn-sm ${cm.isMastered?'btn-success':''}" onclick="event.stopPropagation();startPractice('${c.id}')">${cm.isMastered?'Review':'Practice'}</button></div>`;
+          }).join('')}</div>`;
+      } else {
         const m = getTopicMastery(t.id);
-        return `
-          <li class="topic-item ${m.isMastered ? 'mastered' : ''}">
-            <div onclick="showLearn('${t.id}')" style="flex:1;">
-              <span>${t.icon} ${t.name}</span>
-              ${m.isMastered ? '<span style="color:var(--success);"> ✓</span>' : ''}
-              ${!m.isMastered && m.progress > 0 ? `<div class="progress-bar" style="width:100px; height:6px; margin-top:4px;">
-                <div class="progress-fill" style="width:${m.progress}%; background:${m.accuracy >= 80 ? 'var(--accent)' : 'var(--warning)'};"></div>
-              </div>` : ''}
-              <span style="color:var(--text2); font-size:0.85rem; display:block;">
-                ${m.total > 0 ? `${m.correct}/${m.total} (${m.accuracy}%)` : 'Not started'}
-              </span>
-            </div>
-            <button class="btn btn-sm ${m.isMastered ? 'btn-success' : ''}" onclick="event.stopPropagation(); startPractice('${t.id}')">
-              ${m.isMastered ? 'Review' : 'Practice'}
-            </button>
-          </li>
-        `;
-      }).join('')}
-    </ul>
-  `;
+        return `<div class="topic-item ${m.isMastered?'mastered':''}">
+          <div onclick="showLearn('${t.id}')" style="flex:1;cursor:pointer;"><span>${t.icon} ${t.name}</span>${m.isMastered?'<span style="color:var(--success);"> &#10003;</span>':''}
+          ${!m.isMastered && m.progress > 0 ? `<div class="progress-bar" style="width:100px;height:6px;margin-top:4px;"><div class="progress-fill" style="width:${m.progress}%;background:${m.accuracy>=80?'var(--accent)':'var(--warning)'};"></div></div>` : ''}
+          <span style="color:var(--text2);font-size:0.85rem;display:block;">${m.total > 0 ? `${m.correct}/${m.total} (${m.accuracy}%)` : 'Not started'}</span></div>
+          <button class="btn btn-sm ${m.isMastered?'btn-success':''}" onclick="event.stopPropagation();startPractice('${t.id}')">${m.isMastered?'Review':'Practice'}</button></div>`;
+      }
+    }).join('')}</div>`;
 }
 
 function renderLearn() {
-  const topic = TOPICS.find(t => t.id === state.currentTopic);
+  let topicInfo = ALL_SUBTOPICS.find(t => t.id === state.currentTopic) || TOPICS.find(t => t.id === state.currentTopic);
   const explanation = TOPIC_EXPLANATIONS[state.currentTopic] || 'No explanation available.';
   const m = getTopicMastery(state.currentTopic);
-  
-  return `
-    <button class="btn btn-sm btn-secondary" onclick="showPage('topics')" style="margin-bottom:12px;">← Back</button>
-    <h1>${topic.icon} ${topic.name}</h1>
-    
-    <div class="card">
-      <div style="display:flex; justify-content:space-between;">
-        <span>${m.isMastered ? '✅ Mastered!' : `📈 ${m.correct}/${MASTERY_REQUIRED} correct (${m.accuracy}%)`}</span>
-        ${!m.isMastered && m.needed > 0 ? `<span style="color:var(--text2);">Need ${m.needed} more at 80%+</span>` : ''}
-      </div>
-      <div class="progress-bar">
-        <div class="progress-fill" style="width:${m.progress}%; background:${m.isMastered ? 'var(--success)' : m.accuracy >= 80 ? 'var(--accent)' : 'var(--warning)'};"></div>
-      </div>
-    </div>
-    
-    <div class="explanation-box">
-      <h3 style="margin-top:0;">📖 Explanation</h3>
-      <p>${explanation}</p>
-    </div>
-    
-    <button class="btn btn-block" onclick="startPractice('${state.currentTopic}')">
-      Start Practice →
-    </button>
-  `;
+  const name = topicInfo?.name || state.currentTopic;
+  return `<button class="btn btn-sm btn-secondary" onclick="showPage('topics')" style="margin-bottom:12px;">Back</button>
+    <h1>${name}</h1>
+    <div class="card"><div style="display:flex;justify-content:space-between;"><span>${m.isMastered ? 'Mastered!' : `${m.correct}/${MASTERY_REQUIRED} correct (${m.accuracy}%)`}</span>
+    ${!m.isMastered && m.needed > 0 ? `<span style="color:var(--text2);">Need ${m.needed} more at 80%+</span>` : ''}</div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${m.progress}%;background:${m.isMastered?'var(--success)':m.accuracy>=80?'var(--accent)':'var(--warning)'};"></div></div></div>
+    <div class="explanation-box"><h3 style="margin-top:0;">Explanation</h3><p>${explanation}</p></div>
+    <button class="btn btn-block" onclick="startPractice('${state.currentTopic}')">Start Practice</button>`;
 }
 
 function renderPractice() {
-  const topic = TOPICS.find(t => t.id === state.currentTopic);
+  let topicInfo = ALL_SUBTOPICS.find(t => t.id === state.currentTopic) || TOPICS.find(t => t.id === state.currentTopic);
   const m = getTopicMastery(state.currentTopic);
   const q = state.currentQuestion;
-  
+  const name = topicInfo?.name || state.currentTopic;
   if (state.showResult) {
     const justMastered = m.isMastered && m.correct === MASTERY_REQUIRED;
-    const nextIdx = TOPICS.findIndex(t => t.id === state.currentTopic) + 1;
-    const nextTopic = nextIdx < TOPICS.length ? TOPICS[nextIdx] : null;
-    
-    return `
-      ${justMastered ? `
-        <div class="celebration">
-          <h2 style="font-size:2rem;">🎉</h2>
-          <h2>Topic Mastered!</h2>
-          <p style="color:rgba(255,255,255,0.9);">${m.correct} correct at ${m.accuracy}% accuracy</p>
-          ${nextTopic ? `<button class="btn btn-success" style="margin-top:12px;" onclick="startPractice('${nextTopic.id}')">Next: ${nextTopic.name} →</button>` : ''}
-        </div>
-      ` : ''}
-      
-      <h1>${state.wasCorrect ? '<span class="correct">✓ Correct!</span>' : '<span class="incorrect">✗ Incorrect</span>'}</h1>
-      
-      ${!justMastered ? `
-        <div class="card">
-          <div style="display:flex; justify-content:space-between;">
-            <span>${m.isMastered ? '✅ Mastered' : `📈 ${m.correct}/${MASTERY_REQUIRED} (${m.accuracy}%)`}</span>
-            ${!m.isMastered ? `<span style="color:var(--text2);">Need ${m.needed} more</span>` : ''}
-          </div>
-          <div class="progress-bar">
-            <div class="progress-fill" style="width:${m.progress}%; background:${m.isMastered ? 'var(--success)' : m.accuracy >= 80 ? 'var(--accent)' : 'var(--warning)'};"></div>
-          </div>
-        </div>
-      ` : ''}
-      
-      <div class="card">
-        <p><strong>Question:</strong> ${q.prompt}</p>
-        <p><strong>Your answer:</strong> ${state.lastAnswer || '(none)'}</p>
-        <p><strong>Correct answer:</strong> ${q.answer}</p>
-      </div>
-      
-      <div class="card">
-        <strong>Solution:</strong>
-        <ol class="steps-list">
-          ${q.steps.map(s => `<li>${s}</li>`).join('')}
-        </ol>
-      </div>
-      
-      <div class="flex-row">
-        <button class="btn flex-grow" onclick="nextQuestion()">Next Question →</button>
-        <button class="btn btn-secondary" onclick="showPage('topics')">Back</button>
-      </div>
-    `;
+    let nextTopic = null;
+    const currentIdx = ALL_SUBTOPICS.findIndex(t => t.id === state.currentTopic);
+    if (currentIdx >= 0) for (let i = currentIdx + 1; i < ALL_SUBTOPICS.length; i++) if (!getTopicMastery(ALL_SUBTOPICS[i].id).isMastered) { nextTopic = ALL_SUBTOPICS[i]; break; }
+    return `${justMastered ? `<div class="celebration"><h2 style="font-size:2rem;">&#127881;</h2><h2>Topic Mastered!</h2><p style="color:rgba(255,255,255,0.9);">${m.correct} correct at ${m.accuracy}% accuracy</p>
+      ${nextTopic ? `<button class="btn btn-success" style="margin-top:12px;" onclick="startPractice('${nextTopic.id}')">Next: ${nextTopic.name}</button>` : ''}</div>` : ''}
+      <h1>${state.wasCorrect ? '<span class="correct">Correct!</span>' : '<span class="incorrect">Incorrect</span>'}</h1>
+      ${!justMastered ? `<div class="card"><div style="display:flex;justify-content:space-between;"><span>${m.isMastered ? 'Mastered' : `${m.correct}/${MASTERY_REQUIRED} (${m.accuracy}%)`}</span>
+      ${!m.isMastered ? `<span style="color:var(--text2);">Need ${m.needed} more</span>` : ''}</div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${m.progress}%;background:${m.isMastered?'var(--success)':m.accuracy>=80?'var(--accent)':'var(--warning)'};"></div></div></div>` : ''}
+      <div class="card"><p><strong>Question:</strong> ${q.prompt}</p><p><strong>Your answer:</strong> ${state.lastAnswer || '(none)'}</p><p><strong>Correct:</strong> ${q.answer}</p></div>
+      <div class="card"><strong>Solution:</strong><ol class="steps-list">${q.steps.map(s=>`<li>${s}</li>`).join('')}</ol></div>
+      <div class="flex-row"><button class="btn flex-grow" onclick="nextQuestion()">Next Question</button><button class="btn btn-secondary" onclick="showPage('topics')">Back</button></div>`;
   }
-  
-  return `
-    <button class="btn btn-sm btn-secondary" onclick="showPage('topics')" style="margin-bottom:12px;">← Back</button>
-    <h1>${topic.icon} ${topic.name}</h1>
-    
-    <div class="card">
-      <div style="display:flex; justify-content:space-between;">
-        <span>${m.isMastered ? '✅ Mastered!' : `📈 ${m.correct}/${MASTERY_REQUIRED} (${m.accuracy}%)`}</span>
-        ${!m.isMastered ? `<span style="color:var(--text2);">Need ${m.needed} more at 80%+</span>` : ''}
-      </div>
-      <div class="progress-bar">
-        <div class="progress-fill" style="width:${m.progress}%; background:${m.isMastered ? 'var(--success)' : m.accuracy >= 80 ? 'var(--accent)' : 'var(--warning)'};"></div>
-      </div>
-    </div>
-    
-    <div class="diff-pills">
-      <span class="diff-pill ${state.difficulty===1 ? 'active' : ''}" onclick="setDifficulty(1)">⭐ Easy</span>
-      <span class="diff-pill ${state.difficulty===2 ? 'active' : ''}" onclick="setDifficulty(2)">⭐⭐ Medium</span>
-      <span class="diff-pill ${state.difficulty===3 ? 'active' : ''}" onclick="setDifficulty(3)">⭐⭐⭐ Hard</span>
-    </div>
-    
-    <div class="card">
-      <p style="font-size:1.1rem; margin-bottom:16px;"><strong>${q.prompt}</strong></p>
-      
-      <form onsubmit="submitAnswer(event)">
-        <input type="text" id="answer" placeholder="Your answer..." autocomplete="off" style="margin-bottom:12px;">
-        <button type="submit" class="btn btn-block">Submit</button>
-      </form>
-      
-      <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
-        <button class="btn btn-sm btn-secondary" onclick="showHint(0)">💡 Hint 1</button>
-        <button class="btn btn-sm btn-secondary" onclick="showHint(1)">💡 Hint 2</button>
-        <button class="btn btn-sm btn-secondary" onclick="showHint(2)">💡 Hint 3</button>
-        <button class="btn btn-sm btn-info" onclick="toggleExplanation()">📖 Theory</button>
-      </div>
-      
-      <div id="hint0" class="hint-box">💡 ${q.hints[0] || ''}</div>
-      <div id="hint1" class="hint-box">💡 ${q.hints[1] || ''}</div>
-      <div id="hint2" class="hint-box">💡 ${q.hints[2] || ''}</div>
-      
-      <div id="explanation" class="explanation-box ${state.showExplanation ? '' : 'hidden'}" style="margin-top:12px;">
-        ${TOPIC_EXPLANATIONS[state.currentTopic] || ''}
-      </div>
-    </div>
-    
-    <button class="btn btn-secondary btn-block" onclick="nextQuestion()">↻ Skip Question</button>
-  `;
+  return `<button class="btn btn-sm btn-secondary" onclick="showPage('topics')" style="margin-bottom:12px;">Back</button><h1>${name}</h1>
+    <div class="card"><div style="display:flex;justify-content:space-between;"><span>${m.isMastered ? 'Mastered!' : `${m.correct}/${MASTERY_REQUIRED} (${m.accuracy}%)`}</span>
+    ${!m.isMastered ? `<span style="color:var(--text2);">Need ${m.needed} more at 80%+</span>` : ''}</div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${m.progress}%;background:${m.isMastered?'var(--success)':m.accuracy>=80?'var(--accent)':'var(--warning)'};"></div></div></div>
+    <div class="diff-pills"><span class="diff-pill ${state.difficulty===1?'active':''}" onclick="setDifficulty(1)">Easy</span><span class="diff-pill ${state.difficulty===2?'active':''}" onclick="setDifficulty(2)">Medium</span><span class="diff-pill ${state.difficulty===3?'active':''}" onclick="setDifficulty(3)">Hard</span></div>
+    <div class="card"><p style="font-size:1.1rem;margin-bottom:16px;"><strong>${q.prompt}</strong></p>
+    <form onsubmit="submitAnswer(event)"><input type="text" id="answer" placeholder="Your answer..." autocomplete="off" style="margin-bottom:12px;"><button type="submit" class="btn btn-block">Submit</button></form>
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;"><button class="btn btn-sm btn-secondary" onclick="showHint(0)">Hint 1</button><button class="btn btn-sm btn-secondary" onclick="showHint(1)">Hint 2</button><button class="btn btn-sm btn-secondary" onclick="showHint(2)">Hint 3</button><button class="btn btn-sm btn-info" onclick="toggleExplanation()">Theory</button></div>
+    <div id="hint0" class="hint-box">${q.hints[0] || ''}</div><div id="hint1" class="hint-box">${q.hints[1] || ''}</div><div id="hint2" class="hint-box">${q.hints[2] || ''}</div>
+    <div id="explanation" class="explanation-box ${state.showExplanation?'':'hidden'}" style="margin-top:12px;">${TOPIC_EXPLANATIONS[state.currentTopic] || ''}</div></div>
+    <button class="btn btn-secondary btn-block" onclick="nextQuestion()">Skip Question</button>`;
 }
 
 function renderReview() {
   const dueCards = getDueCards();
-  
-  if (dueCards.length === 0) {
-    return `
-      <h1>🔄 Review</h1>
-      <div class="card" style="text-align:center; padding:40px;">
-        <p style="font-size:2rem;">✅</p>
-        <p style="font-size:1.2rem;">All caught up!</p>
-        <p style="color:var(--text2);">No cards due for review.</p>
-        <button class="btn" style="margin-top:16px;" onclick="showPage('topics')">Practice Topics</button>
-      </div>
-    `;
-  }
-  
-  // Group by topic
+  if (dueCards.length === 0) return `<h1>Review</h1><div class="card" style="text-align:center;padding:40px;"><p style="font-size:2rem;">&#10003;</p><p style="font-size:1.2rem;">All caught up!</p><p style="color:var(--text2);">No cards due for review.</p><button class="btn" style="margin-top:16px;" onclick="showPage('topics')">Practice Topics</button></div>`;
   const byTopic = {};
-  dueCards.forEach(c => {
-    const topicId = c.topicId || c.id.split('_')[0];
-    if (!byTopic[topicId]) byTopic[topicId] = [];
-    byTopic[topicId].push(c);
-  });
-  
-  return `
-    <h1>🔄 Review</h1>
-    <p style="color:var(--text2); margin-bottom:16px;">${dueCards.length} card${dueCards.length !== 1 ? 's' : ''} due for review</p>
-    
+  dueCards.forEach(c => { const topicId = c.topicId || c.id.split('_')[0]; if (!byTopic[topicId]) byTopic[topicId] = []; byTopic[topicId].push(c); });
+  return `<h1>Review</h1><p style="color:var(--text2);margin-bottom:16px;">${dueCards.length} cards due</p>
     <button class="btn btn-block" onclick="startReviewSession()">Start Review Session</button>
-    
-    <h2>Due by Topic</h2>
-    <ul class="topic-list">
-      ${Object.entries(byTopic).map(([topicId, cards]) => {
-        const topic = TOPICS.find(t => t.id === topicId);
-        return `
-          <li class="topic-item">
-            <span>${topic ? topic.icon : '📚'} ${topic ? topic.name : topicId}</span>
-            <span class="badge">${cards.length}</span>
-          </li>
-        `;
-      }).join('')}
-    </ul>
-  `;
+    <h2>Due by Topic</h2><ul class="topic-list">${Object.entries(byTopic).map(([topicId, cards]) => {
+      const topic = TOPICS.find(t => t.id === topicId) || ALL_SUBTOPICS.find(t => t.id === topicId);
+      return `<li class="topic-item"><span>${topic ? topic.name : topicId}</span><span class="badge">${cards.length}</span></li>`;
+    }).join('')}</ul>`;
 }
 
 function renderTest() {
-  if (state.testResults) {
-    return renderTestResults();
-  }
-  
-  return `
-    <h1>📝 Test Mode</h1>
-    <p style="color:var(--text2); margin-bottom:16px;">Create a custom quiz</p>
-    
-    <div class="card">
-      <h3>Select Topics</h3>
-      <div style="margin-bottom:12px;">
-        <button class="btn btn-sm btn-secondary" onclick="selectAllTopics(true)">Select All</button>
-        <button class="btn btn-sm btn-secondary" onclick="selectAllTopics(false)">Clear All</button>
-      </div>
-      <div class="checkbox-grid" id="topic-checkboxes">
-        ${TOPICS.map(t => `
-          <label class="checkbox-item">
-            <input type="checkbox" name="topic" value="${t.id}" checked>
-            <span>${t.icon} ${t.name}</span>
-          </label>
-        `).join('')}
-      </div>
-    </div>
-    
-    <div class="card">
-      <h3>Settings</h3>
-      <div style="margin-bottom:12px;">
-        <label style="color:var(--text2);">Number of Questions</label>
-        <select id="num-questions">
-          <option value="5">5 questions</option>
-          <option value="10" selected>10 questions</option>
-          <option value="15">15 questions</option>
-          <option value="20">20 questions</option>
-          <option value="30">30 questions</option>
-        </select>
-      </div>
-      <div>
-        <label style="color:var(--text2);">Difficulty</label>
-        <div class="diff-pills">
-          <span class="diff-pill active" data-diff="1" onclick="setTestDiff(1)">⭐ Easy</span>
-          <span class="diff-pill" data-diff="2" onclick="setTestDiff(2)">⭐⭐ Medium</span>
-          <span class="diff-pill" data-diff="3" onclick="setTestDiff(3)">⭐⭐⭐ Hard</span>
-          <span class="diff-pill" data-diff="0" onclick="setTestDiff(0)">🎲 Mixed</span>
-        </div>
-      </div>
-    </div>
-    
-    <button class="btn btn-block" onclick="startTest()">Start Test →</button>
-  `;
+  if (state.testResults) return renderTestResults();
+  return `<h1>Test Mode</h1><p style="color:var(--text2);margin-bottom:16px;">Create a custom quiz</p>
+    <div class="card"><h3>Select Topics</h3><div style="margin-bottom:12px;"><button class="btn btn-sm btn-secondary" onclick="selectAllTopics(true)">Select All</button> <button class="btn btn-sm btn-secondary" onclick="selectAllTopics(false)">Clear All</button></div>
+    <div class="checkbox-grid" id="topic-checkboxes">${ALL_SUBTOPICS.map(t => `<label class="checkbox-item"><input type="checkbox" name="topic" value="${t.id}" checked><span>${t.name}</span></label>`).join('')}</div></div>
+    <div class="card"><h3>Settings</h3><div style="margin-bottom:12px;"><label style="color:var(--text2);">Number of Questions</label>
+    <select id="num-questions"><option value="5">5 questions</option><option value="10" selected>10 questions</option><option value="15">15 questions</option><option value="20">20 questions</option></select></div>
+    <div><label style="color:var(--text2);">Difficulty</label><div class="diff-pills"><span class="diff-pill active" data-diff="1" onclick="setTestDiff(1)">Easy</span><span class="diff-pill" data-diff="2" onclick="setTestDiff(2)">Medium</span><span class="diff-pill" data-diff="3" onclick="setTestDiff(3)">Hard</span><span class="diff-pill" data-diff="0" onclick="setTestDiff(0)">Mixed</span></div></div></div>
+    <button class="btn btn-block" onclick="startTest()">Start Test</button>`;
 }
 
 function renderTestRun() {
   const q = state.testQuestions[state.testCurrentIndex];
   const progress = `${state.testCurrentIndex + 1} / ${state.testQuestions.length}`;
-  const topic = TOPICS.find(t => t.id === q.topicId);
-  
-  return `
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-      <h1 style="margin:0;">📝 Test</h1>
-      <span style="color:var(--text2);">${progress}</span>
-    </div>
-    
-    <div class="progress-bar" style="margin-bottom:16px;">
-      <div class="progress-fill" style="width:${Math.round(100 * state.testCurrentIndex / state.testQuestions.length)}%; background:var(--accent);"></div>
-    </div>
-    
-    <div class="card">
-      <p style="color:var(--text2); font-size:0.9rem; margin-bottom:8px;">${topic ? topic.icon + ' ' + topic.name : q.topicId}</p>
-      <p style="font-size:1.1rem; margin-bottom:16px;"><strong>${q.prompt}</strong></p>
-      
-      <form onsubmit="submitTestAnswer(event)">
-        <input type="text" id="test-answer" placeholder="Your answer..." autocomplete="off" style="margin-bottom:12px;">
-        <button type="submit" class="btn btn-block">
-          ${state.testCurrentIndex === state.testQuestions.length - 1 ? 'Finish Test' : 'Next Question →'}
-        </button>
-      </form>
-    </div>
-    
-    <button class="btn btn-secondary btn-block" onclick="if(confirm('Abandon test?')) showPage('test')">Cancel Test</button>
-  `;
+  const topic = ALL_SUBTOPICS.find(t => t.id === q.topicId) || TOPICS.find(t => t.id === q.topicId);
+  return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;"><h1 style="margin:0;">Test</h1><span style="color:var(--text2);">${progress}</span></div>
+    <div class="progress-bar" style="margin-bottom:16px;"><div class="progress-fill" style="width:${Math.round(100*state.testCurrentIndex/state.testQuestions.length)}%;background:var(--accent);"></div></div>
+    <div class="card"><p style="color:var(--text2);font-size:0.9rem;margin-bottom:8px;">${topic ? topic.name : q.topicId}</p><p style="font-size:1.1rem;margin-bottom:16px;"><strong>${q.prompt}</strong></p>
+    <form onsubmit="submitTestAnswer(event)"><input type="text" id="test-answer" placeholder="Your answer..." autocomplete="off" style="margin-bottom:12px;">
+    <button type="submit" class="btn btn-block">${state.testCurrentIndex === state.testQuestions.length - 1 ? 'Finish Test' : 'Next Question'}</button></form></div>
+    <button class="btn btn-secondary btn-block" onclick="if(confirm('Abandon test?')) showPage('test')">Cancel Test</button>`;
 }
 
 function renderTestResults() {
   const results = state.testResults;
   const score = results.correct / results.total * 100;
-  
-  // Group mistakes by type
   const mistakesByTopic = {};
-  results.questions.forEach((q, i) => {
-    if (!results.answers[i].correct) {
-      const topicId = q.topicId;
-      if (!mistakesByTopic[topicId]) mistakesByTopic[topicId] = [];
-      mistakesByTopic[topicId].push({ q, userAnswer: results.answers[i].given });
-    }
-  });
-  
-  return `
-    <h1>📝 Test Results</h1>
-    
-    <div class="card" style="text-align:center; padding:24px;">
-      <p style="font-size:3rem; margin:0;">${score >= 80 ? '🎉' : score >= 60 ? '👍' : '📚'}</p>
-      <p style="font-size:2rem; font-weight:bold; color:${score >= 80 ? 'var(--success)' : score >= 60 ? 'var(--warning)' : 'var(--accent)'};">
-        ${score.toFixed(0)}%
-      </p>
-      <p style="color:var(--text2);">${results.correct} / ${results.total} correct</p>
-    </div>
-    
-    ${Object.keys(mistakesByTopic).length > 0 ? `
-      <h2>❌ Topics to Review</h2>
-      ${Object.entries(mistakesByTopic).map(([topicId, mistakes]) => {
-        const topic = TOPICS.find(t => t.id === topicId);
-        return `
-          <div class="card">
-            <h3 style="margin-top:0;">${topic ? topic.icon + ' ' + topic.name : topicId}</h3>
-            ${mistakes.map(({ q, userAnswer }) => `
-              <div style="padding:8px; background:var(--bg2); border-radius:8px; margin:8px 0;">
-                <p style="margin:0;"><strong>Q:</strong> ${q.prompt}</p>
-                <p style="margin:4px 0; color:var(--accent);">Your answer: ${userAnswer || '(none)'}</p>
-                <p style="margin:0; color:var(--success);">Correct: ${q.answer}</p>
-              </div>
-            `).join('')}
-            <button class="btn btn-sm" style="margin-top:8px;" onclick="startPractice('${topicId}')">Practice ${topic ? topic.name : topicId}</button>
-          </div>
-        `;
-      }).join('')}
-    ` : ''}
-    
-    <div class="flex-row">
-      <button class="btn flex-grow" onclick="state.testResults=null; showPage('test')">New Test</button>
-      <button class="btn btn-secondary" onclick="showPage('topics')">Topics</button>
-    </div>
-  `;
+  results.questions.forEach((q, i) => { if (!results.answers[i].correct) { const topicId = q.topicId; if (!mistakesByTopic[topicId]) mistakesByTopic[topicId] = []; mistakesByTopic[topicId].push({ q, userAnswer: results.answers[i].given }); } });
+  return `<h1>Test Results</h1>
+    <div class="card" style="text-align:center;padding:24px;"><p style="font-size:3rem;margin:0;">${score >= 80 ? '&#127881;' : score >= 60 ? '&#128077;' : '&#128218;'}</p>
+    <p style="font-size:2rem;font-weight:bold;color:${score>=80?'var(--success)':score>=60?'var(--warning)':'var(--accent)'};">${score.toFixed(0)}%</p>
+    <p style="color:var(--text2);">${results.correct} / ${results.total} correct</p></div>
+    ${Object.keys(mistakesByTopic).length > 0 ? `<h2>Topics to Review</h2>${Object.entries(mistakesByTopic).map(([topicId, mistakes]) => {
+      const topic = ALL_SUBTOPICS.find(t => t.id === topicId) || TOPICS.find(t => t.id === topicId);
+      return `<div class="card"><h3 style="margin-top:0;">${topic ? topic.name : topicId}</h3>
+        ${mistakes.map(({ q, userAnswer }) => `<div style="padding:8px;background:var(--bg2);border-radius:8px;margin:8px 0;"><p style="margin:0;"><strong>Q:</strong> ${q.prompt}</p><p style="margin:4px 0;color:var(--accent);">Your answer: ${userAnswer || '(none)'}</p><p style="margin:0;color:var(--success);">Correct: ${q.answer}</p></div>`).join('')}
+        <button class="btn btn-sm" style="margin-top:8px;" onclick="startPractice('${topicId}')">Practice ${topic ? topic.name : topicId}</button></div>`;
+    }).join('')}` : ''}
+    <div class="flex-row"><button class="btn flex-grow" onclick="state.testResults=null;showPage('test')">New Test</button><button class="btn btn-secondary" onclick="showPage('topics')">Topics</button></div>`;
 }
 
 function renderStats() {
   const attempts = loadAttempts();
-  const mistakes = loadMistakes();
   const progress = loadProgress();
-  
   const totalCorrect = Object.values(progress).reduce((sum, p) => sum + (p.correct || 0), 0);
   const totalAttempts = Object.values(progress).reduce((sum, p) => sum + (p.total || 0), 0);
   const accuracy = totalAttempts > 0 ? Math.round(100 * totalCorrect / totalAttempts) : 0;
-  const mastered = TOPICS.filter(t => getTopicMastery(t.id).isMastered).length;
-  
-  // Recent activity (last 24h, 7d)
-  const now = Date.now();
-  const day = 24 * 60 * 60 * 1000;
-  const last24h = attempts.filter(a => now - a.timestamp < day);
-  const last7d = attempts.filter(a => now - a.timestamp < 7 * day);
-  
-  // Weakest topics (lowest accuracy with >5 attempts)
-  const topicStats = TOPICS.map(t => {
-    const m = getTopicMastery(t.id);
-    return { ...t, ...m };
-  }).filter(t => t.total >= 5).sort((a, b) => a.accuracy - b.accuracy);
-  
-  return `
-    <h1>📊 Statistics</h1>
-    
-    <div class="card">
-      <h3 style="margin-top:0;">Overall</h3>
-      <div class="stat-card">
-        <span>Total Questions</span>
-        <span class="stat-value">${totalAttempts}</span>
-      </div>
-      <div class="stat-card">
-        <span>Correct Answers</span>
-        <span class="stat-value">${totalCorrect}</span>
-      </div>
-      <div class="stat-card">
-        <span>Accuracy</span>
-        <span class="stat-value" style="color:${accuracy >= 80 ? 'var(--success)' : accuracy >= 60 ? 'var(--warning)' : 'var(--accent)'};">${accuracy}%</span>
-      </div>
-      <div class="stat-card">
-        <span>Topics Mastered</span>
-        <span class="stat-value">${mastered}/${TOPICS.length}</span>
-      </div>
-    </div>
-    
-    <div class="card">
-      <h3 style="margin-top:0;">Recent Activity</h3>
-      <div class="stat-card">
-        <span>Last 24 hours</span>
-        <span>${last24h.length} questions</span>
-      </div>
-      <div class="stat-card">
-        <span>Last 7 days</span>
-        <span>${last7d.length} questions</span>
-      </div>
-    </div>
-    
-    ${topicStats.length > 0 ? `
-      <h2>📉 Weakest Topics</h2>
-      ${topicStats.slice(0, 5).map(t => `
-        <div class="stat-card">
-          <span>${t.icon} ${t.name}</span>
-          <span style="color:${t.accuracy >= 80 ? 'var(--success)' : t.accuracy >= 60 ? 'var(--warning)' : 'var(--accent)'};">
-            ${t.accuracy}% (${t.correct}/${t.total})
-          </span>
-        </div>
-      `).join('')}
-    ` : ''}
-    
-    ${Object.keys(mistakes).length > 0 ? `
-      <h2>🔍 Common Mistakes</h2>
-      <div class="card">
-        ${Object.entries(mistakes).sort((a, b) => b[1] - a[1]).map(([type, count]) => `
-          <span class="mistake-tag">${type}: ${count}</span>
-        `).join('')}
-      </div>
-    ` : ''}
-    
-    <h2>📚 All Topics</h2>
-    ${TOPICS.map(t => {
-      const m = getTopicMastery(t.id);
-      return `
-        <div class="stat-card">
-          <span>${t.icon} ${t.name} ${m.isMastered ? '✅' : ''}</span>
-          <span style="color:var(--text2);">${m.total > 0 ? `${m.correct}/${m.total} (${m.accuracy}%)` : 'Not started'}</span>
-        </div>
-      `;
-    }).join('')}
-    
-    <button class="btn btn-secondary btn-block" style="margin-top:16px;" onclick="if(confirm('Reset all progress? This cannot be undone.')) { localStorage.clear(); render(); }">
-      🗑️ Reset All Progress
-    </button>
-  `;
+  const mastered = ALL_SUBTOPICS.filter(t => getTopicMastery(t.id).isMastered).length;
+  const now = Date.now(), day = 24*60*60*1000;
+  const last24h = attempts.filter(a => now - a.timestamp < day).length;
+  const last7d = attempts.filter(a => now - a.timestamp < 7*day).length;
+  return `<h1>Statistics</h1>
+    <div class="card"><h3 style="margin-top:0;">Overall</h3>
+    <div class="stat-card"><span>Total Questions</span><span class="stat-value">${totalAttempts}</span></div>
+    <div class="stat-card"><span>Correct Answers</span><span class="stat-value">${totalCorrect}</span></div>
+    <div class="stat-card"><span>Accuracy</span><span class="stat-value" style="color:${accuracy>=80?'var(--success)':accuracy>=60?'var(--warning)':'var(--accent)'};">${accuracy}%</span></div>
+    <div class="stat-card"><span>Topics Mastered</span><span class="stat-value">${mastered}/${ALL_SUBTOPICS.length}</span></div></div>
+    <div class="card"><h3 style="margin-top:0;">Recent Activity</h3>
+    <div class="stat-card"><span>Last 24 hours</span><span>${last24h} questions</span></div>
+    <div class="stat-card"><span>Last 7 days</span><span>${last7d} questions</span></div></div>
+    <button class="btn btn-secondary btn-block" style="margin-top:16px;" onclick="if(confirm('Reset all progress? This cannot be undone.')) { localStorage.clear(); render(); }">Reset All Progress</button>`;
 }
 
-// ============================================================================
-// ACTIONS
-// ============================================================================
-
-function showPage(page) {
-  state.page = page;
-  state.showResult = false;
-  state.showExplanation = false;
-  if (page === 'test') {
-    state.testResults = null;
-  }
-  render();
-}
-
-function showLearn(topicId) {
-  state.page = 'learn';
-  state.currentTopic = topicId;
-  render();
-}
-
-function startPractice(topicId) {
-  state.page = 'practice';
-  state.currentTopic = topicId;
-  state.currentQuestion = generateQuestion(topicId, state.difficulty);
-  state.showResult = false;
-  state.showExplanation = false;
-  render();
-  setTimeout(() => document.getElementById('answer')?.focus(), 100);
-}
-
-function setDifficulty(d) {
-  state.difficulty = d;
-  state.currentQuestion = generateQuestion(state.currentTopic, d);
-  state.showExplanation = false;
-  render();
-}
-
-function nextQuestion() {
-  state.currentQuestion = generateQuestion(state.currentTopic, state.difficulty);
-  state.showResult = false;
-  state.showExplanation = false;
-  render();
-  setTimeout(() => document.getElementById('answer')?.focus(), 100);
-}
-
-function showHint(n) {
-  const el = document.getElementById('hint' + n);
-  if (el) {
-    el.classList.toggle('show');
-    if (typeof renderMathInElement !== 'undefined') {
-      renderMathInElement(el, {
-        delimiters: [{left: '\\(', right: '\\)', display: false}],
-        throwOnError: false
-      });
-    }
-  }
-}
-
-function toggleExplanation() {
-  state.showExplanation = !state.showExplanation;
-  const el = document.getElementById('explanation');
-  if (el) {
-    el.classList.toggle('hidden', !state.showExplanation);
-    if (typeof renderMathInElement !== 'undefined') {
-      renderMathInElement(el, {
-        delimiters: [{left: '\\(', right: '\\)', display: false}],
-        throwOnError: false
-      });
-    }
-  }
-}
-
-function submitAnswer(e) {
-  e.preventDefault();
-  const input = document.getElementById('answer');
-  const userAnswer = input.value.trim();
-  
-  const q = state.currentQuestion;
-  const isCorrect = checkAnswer(userAnswer, q.answer);
-  
-  recordAttempt(state.currentTopic, isCorrect, q.mistakeTypes?.[0], userAnswer);
-  updateSRS(`${q.topicId}_${q.seed}_${q.difficulty}`, q.topicId, isCorrect);
-  
-  state.lastAnswer = userAnswer;
-  state.wasCorrect = isCorrect;
-  state.showResult = true;
-  render();
-}
-
-// Review session
-function startReviewSession() {
-  const due = getDueCards();
-  if (due.length === 0) return;
-  
-  // Pick a random due card and start practice
-  const card = due[0];
-  const topicId = card.topicId || card.id.split('_')[0];
-  startPractice(topicId);
-}
-
-// Test mode
+function showPage(page) { state.page = page; state.showResult = false; state.showExplanation = false; if (page === 'test') state.testResults = null; render(); }
+function showLearn(topicId) { state.page = 'learn'; state.currentTopic = topicId; render(); }
+function startPractice(topicId) { state.page = 'practice'; state.currentTopic = topicId; state.currentQuestion = generateQuestion(topicId, state.difficulty); state.showResult = false; state.showExplanation = false; render(); setTimeout(() => document.getElementById('answer')?.focus(), 100); }
+function setDifficulty(d) { state.difficulty = d; state.currentQuestion = generateQuestion(state.currentTopic, d); state.showExplanation = false; render(); }
+function nextQuestion() { state.currentQuestion = generateQuestion(state.currentTopic, state.difficulty); state.showResult = false; state.showExplanation = false; render(); setTimeout(() => document.getElementById('answer')?.focus(), 100); }
+function showHint(n) { const el = document.getElementById('hint' + n); if (el) { el.classList.toggle('show'); if (typeof renderMathInElement !== 'undefined') renderMathInElement(el, {delimiters:[{left:'\\(',right:'\\)',display:false}],throwOnError:false}); } }
+function toggleExplanation() { state.showExplanation = !state.showExplanation; const el = document.getElementById('explanation'); if (el) { el.classList.toggle('hidden', !state.showExplanation); if (typeof renderMathInElement !== 'undefined') renderMathInElement(el, {delimiters:[{left:'\\(',right:'\\)',display:false}],throwOnError:false}); } }
+function toggleTopic(topicId) { state.expandedTopics[topicId] = !state.expandedTopics[topicId]; saveExpandedState(state.expandedTopics); render(); }
+function submitAnswer(e) { e.preventDefault(); const input = document.getElementById('answer'); const userAnswer = input.value.trim(); const q = state.currentQuestion; const isCorrect = checkAnswer(userAnswer, q.answer); recordAttempt(state.currentTopic, isCorrect, q.mistakeTypes?.[0], userAnswer); updateSRS(`${q.topicId}_${q.seed}_${q.difficulty}`, q.topicId, isCorrect); state.lastAnswer = userAnswer; state.wasCorrect = isCorrect; state.showResult = true; render(); }
+function startReviewSession() { const due = getDueCards(); if (due.length === 0) return; const card = due[0]; const topicId = card.topicId || card.id.split('_')[0]; startPractice(topicId); }
 let testDifficulty = 1;
-
-function setTestDiff(d) {
-  testDifficulty = d;
-  document.querySelectorAll('.diff-pill[data-diff]').forEach(el => {
-    el.classList.toggle('active', parseInt(el.getAttribute('data-diff')) === d);
-  });
-}
-
-function selectAllTopics(select) {
-  document.querySelectorAll('#topic-checkboxes input').forEach(cb => {
-    cb.checked = select;
-  });
-}
-
-function startTest() {
-  const selected = Array.from(document.querySelectorAll('#topic-checkboxes input:checked')).map(cb => cb.value);
-  if (selected.length === 0) {
-    alert('Please select at least one topic.');
-    return;
-  }
-  
-  const numQ = parseInt(document.getElementById('num-questions').value);
-  const questions = [];
-  
-  for (let i = 0; i < numQ; i++) {
-    const topicId = selected[i % selected.length];
-    const diff = testDifficulty === 0 ? randInt(rng(Date.now() + i), 1, 3) : testDifficulty;
-    const q = generateQuestion(topicId, diff);
-    if (q) questions.push(q);
-  }
-  
-  // Shuffle questions
-  for (let i = questions.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [questions[i], questions[j]] = [questions[j], questions[i]];
-  }
-  
-  state.testQuestions = questions;
-  state.testAnswers = [];
-  state.testCurrentIndex = 0;
-  state.page = 'testRun';
-  render();
-  setTimeout(() => document.getElementById('test-answer')?.focus(), 100);
-}
-
-function submitTestAnswer(e) {
-  e.preventDefault();
-  const input = document.getElementById('test-answer');
-  const userAnswer = input.value.trim();
-  const q = state.testQuestions[state.testCurrentIndex];
-  
-  const isCorrect = checkAnswer(userAnswer, q.answer);
-  state.testAnswers.push({ given: userAnswer, correct: isCorrect });
-  
-  // Record for stats
-  recordAttempt(q.topicId, isCorrect, q.mistakeTypes?.[0], userAnswer);
-  
-  if (state.testCurrentIndex < state.testQuestions.length - 1) {
-    state.testCurrentIndex++;
-    render();
-    setTimeout(() => document.getElementById('test-answer')?.focus(), 100);
-  } else {
-    // Test complete
-    const correct = state.testAnswers.filter(a => a.correct).length;
-    state.testResults = {
-      questions: state.testQuestions,
-      answers: state.testAnswers,
-      correct,
-      total: state.testQuestions.length
-    };
-    state.page = 'testResults';
-    render();
-  }
-}
-
-// ============================================================================
-// SERVICE WORKER & PWA
-// ============================================================================
-
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(err => {
-      console.log('SW registration failed:', err);
-    });
-  });
-}
-
-// ============================================================================
-// INIT
-// ============================================================================
-
+function setTestDiff(d) { testDifficulty = d; document.querySelectorAll('.diff-pill[data-diff]').forEach(el => el.classList.toggle('active', parseInt(el.getAttribute('data-diff')) === d)); }
+function selectAllTopics(select) { document.querySelectorAll('#topic-checkboxes input').forEach(cb => cb.checked = select); }
+function startTest() { const selected = Array.from(document.querySelectorAll('#topic-checkboxes input:checked')).map(cb => cb.value); if (selected.length === 0) { alert('Please select at least one topic.'); return; } const numQ = parseInt(document.getElementById('num-questions').value); const questions = []; for (let i = 0; i < numQ; i++) { const topicId = selected[i % selected.length]; const diff = testDifficulty === 0 ? randInt(rng(Date.now() + i), 1, 3) : testDifficulty; const q = generateQuestion(topicId, diff); if (q) questions.push(q); } for (let i = questions.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [questions[i], questions[j]] = [questions[j], questions[i]]; } state.testQuestions = questions; state.testAnswers = []; state.testCurrentIndex = 0; state.page = 'testRun'; render(); setTimeout(() => document.getElementById('test-answer')?.focus(), 100); }
+function submitTestAnswer(e) { e.preventDefault(); const input = document.getElementById('test-answer'); const userAnswer = input.value.trim(); const q = state.testQuestions[state.testCurrentIndex]; const isCorrect = checkAnswer(userAnswer, q.answer); state.testAnswers.push({ given: userAnswer, correct: isCorrect }); recordAttempt(q.topicId, isCorrect, q.mistakeTypes?.[0], userAnswer); if (state.testCurrentIndex < state.testQuestions.length - 1) { state.testCurrentIndex++; render(); setTimeout(() => document.getElementById('test-answer')?.focus(), 100); } else { state.testResults = { questions: state.testQuestions, answers: state.testAnswers, correct: state.testAnswers.filter(a => a.correct).length, total: state.testQuestions.length }; state.page = 'testResults'; render(); } }
+if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(err => console.log('SW registration failed:', err)));
 render();
 </script>
 </body>
